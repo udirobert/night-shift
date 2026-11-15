@@ -14,9 +14,9 @@
  *            velocity spread, per-bar swing ratio drift) so the swung
  *            chart breathes instead of loop
  *   horn   — muted trumpet with a late vibrato, melody only
- * The room chooses the arrangement: title gets the full chart, day is
- * piano reading music, night keeps the horn too (the chart's identity —
- * the player asked for the jazz, not a stripped bed), dawn resolves and rests.
+ * In-game the licensed WeLoveIndies jazz carries the whole shift; this
+ * synth speaks only in stings — the catch horn, the dawn resolve — and
+ * keeps its full arrangements for the offline audition lab (audio-lab).
  */
 (function (root) {
 
@@ -59,7 +59,7 @@ const scoreSynth = {
     if (!this.bus) {
       try {
         const g = audio().createGain();
-        g.gain.value = this.muted ? 0 : 0.5;
+        g.gain.value = this.muted ? 0 : 0.7;
         g.connect(audio().destination);
         this.bus = g;
       } catch { return null; }
@@ -97,7 +97,7 @@ const scoreSynth = {
       src.start(t); src.stop(t + dur + 0.1);
     } catch { /* no audio */ }
   },
-  pianoNote(m, t, dur, vel = 0.05, over) {
+  pianoNote(m, t, dur, vel = 0.11, over) {
     const { ctx, dest } = this.io(over);
     const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain();
     o.type = "sine"; o.frequency.value = midiHz(m);
@@ -124,8 +124,8 @@ const scoreSynth = {
     lg.gain.linearRampToValueAtTime(4.5, t + Math.max(0.25, dur * 0.6));
     lfo.connect(lg); lg.connect(o.frequency);
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.075, t + 0.07);
-    g.gain.setValueAtTime(0.075, t + dur * 0.8);
+    g.gain.linearRampToValueAtTime(0.16, t + 0.07);
+    g.gain.setValueAtTime(0.16, t + dur * 0.8);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.12);
     o.connect(f); f.connect(g); g.connect(dest);
     o.start(t); lfo.start(t);
@@ -180,21 +180,21 @@ const scoreSynth = {
     }
     if (arr.piano) {
       if (arr.piano === "whole") {
-        bar.voicing.forEach((m, i) => this.pianoNote(m, t + i * 0.03, this.barDur() * 0.9, 0.042, io));
+        bar.voicing.forEach((m, i) => this.pianoNote(m, t + i * 0.03, this.barDur() * 0.9, 0.09, io));
       } else {
-        bar.voicing.forEach((m) => this.pianoNote(m, t, beat * 0.85, 0.05 * hum(), io));
-        bar.voicing.forEach((m) => this.pianoNote(m, t + beat * (2 + swing), beat * 0.6, 0.042 * hum(), io));
-        if (bi % 2 === 1) bar.voicing.forEach((m) => this.pianoNote(m, t + beat * 3.5, beat * 0.5, 0.036 * hum(), io));
+        bar.voicing.forEach((m) => this.pianoNote(m, t, beat * 0.85, 0.11 * hum(), io));
+        bar.voicing.forEach((m) => this.pianoNote(m, t + beat * (2 + swing), beat * 0.6, 0.09 * hum(), io));
+        if (bi % 2 === 1) bar.voicing.forEach((m) => this.pianoNote(m, t + beat * 3.5, beat * 0.5, 0.075 * hum(), io));
       }
     }
     if (arr.drums) {
       const dv = 0.85 + it * 0.4; // the kit leans in as the desk heats up
       this.kick(jit(t), 0.045 * dv, io); this.kick(jit(t + beat * 2), 0.04 * hum() * dv, io);
-      this.brush(jit(t + beat), 3000, 0.02 * hum() * dv, 0.06, io);
-      this.brush(jit(t + beat * 3), 3000, 0.02 * hum() * dv, 0.06, io);
+      this.brush(jit(t + beat), 3000, 0.035 * hum() * dv, 0.06, io);
+      this.brush(jit(t + beat * 3), 3000, 0.035 * hum() * dv, 0.06, io);
       for (let i = 0; i < 4; i++) {
-        this.brush(jit(t + i * beat), 7800, 0.008 * hum() * dv, 0.03, io);            // the ride ping
-        this.brush(jit(t + (i + swing) * beat), 7800, 0.005 * hum() * dv, 0.03, io);  // swung upbeat
+        this.brush(jit(t + i * beat), 7800, 0.014 * hum() * dv, 0.03, io);            // the ride ping
+        this.brush(jit(t + (i + swing) * beat), 7800, 0.009 * hum() * dv, 0.03, io);  // swung upbeat
         if (Math.random() < 0.3 + it * 0.25) this.brush(t + (i + 0.5) * beat, 3400, 0.004 * dv, 0.04, io); // ghost
       }
       // past the midpoint the drummer sits up: an extra kick and a low
@@ -238,7 +238,7 @@ const scoreSynth = {
     clearInterval(this.timer);
     this.timer = null;
     const t = this.nextBar;
-    [53, 62, 65, 69, 72].forEach((m, i) => this.pianoNote(m, t + i * 0.06, 5.5, 0.045));
+    [53, 62, 65, 69, 72].forEach((m, i) => this.pianoNote(m, t + i * 0.06, 5.5, 0.09));
     this.bassNote(38, t, 5.2);
     this.name = null;
   },
@@ -253,7 +253,7 @@ const scoreSynth = {
     try {
       const ac = audio();
       bus.gain.cancelScheduledValues(ac.currentTime);
-      bus.gain.linearRampToValueAtTime(this.muted ? 0 : (on ? 0.16 : 0.5), ac.currentTime + 0.4);
+      bus.gain.linearRampToValueAtTime(this.muted ? 0 : (on ? 0.22 : 0.7), ac.currentTime + 0.4);
     } catch { /* */ }
   },
   setMuted() {
@@ -263,7 +263,7 @@ const scoreSynth = {
     try {
       const ac = audio();
       bus.gain.cancelScheduledValues(ac.currentTime);
-      bus.gain.setValueAtTime(this.muted ? 0 : 0.5, ac.currentTime);
+      bus.gain.setValueAtTime(this.muted ? 0 : 0.7, ac.currentTime);
     } catch { /* */ }
   },
   /* game.js reports the mute state here — score.js never owns policy */
@@ -275,7 +275,7 @@ const scoreSynth = {
     const t = ac.currentTime + 0.05;
     this.hornNote(74, t, 0.22);
     this.hornNote(79, t + 0.2, 0.5);
-    [65, 72, 76].forEach((m, i) => this.pianoNote(m, t + 0.34, 1.1, 0.05));
+    [65, 72, 76].forEach((m, i) => this.pianoNote(m, t + 0.34, 1.1, 0.11));
   },
 };
 

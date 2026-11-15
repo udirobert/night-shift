@@ -83,7 +83,7 @@ for (let n = 0; n < 2; n++) {
   const botIdx = subs.findIndex((s) => s.filer === G().culprit);
   /* stamp HUMAN on the humans, SUS + tell on the machine */
   for (let i = 0; i < 5; i++) {
-    window.eval(`G.auditIdx = ${i}; G.auditLocked = false;`);
+    window.eval(`clearLater(); G.auditIdx = ${i}; G.auditLocked = false;`);
     window.renderCase();
     await sleep(100);
     if (i === botIdx) {

@@ -180,7 +180,7 @@
 
   <!-- ===== TITLE ===== -->
   <div id="title" class="overlay">
-    <p class="kicker">a deduction thriller in five night shifts</p>
+    <p class="kicker">spot the machine — a thriller in five night shifts</p>
     <h1>NIGHT SHIFT</h1>
     <div class="title-scene" aria-hidden="true">
     <svg viewBox="0 0 640 300" role="img" aria-label="An auditor's night desk: lamp, docket folder, coffee">
@@ -249,15 +249,9 @@
       <rect x="0" y="0" width="640" height="300" filter="url(#paperGrain)" opacity=".06"/>
     </svg>
     </div>
-    <p class="sub">Five filings a night. One of them is a machine. The postmark gives it away.</p>
-    <div class="steps">
-      <div class="step" data-tip="Every filing carries a postmark: LATENCY · ORIGIN · RELAYS · RECEIPT. Humans file messy — a machine reads clean."><b>1 · READ</b><span>the postmark</span></div>
-      <div class="step-arrow" aria-hidden="true">→</div>
-      <div class="step" data-tip="Stamp each filing HUMAN or SUS. Suspect the machine — but the postmark has to hold it."><b>2 · STAMP</b><span>HUMAN or SUS</span></div>
-      <div class="step-arrow" aria-hidden="true">→</div>
-      <div class="step" data-tip="Point at the field that reads wrong. Name a real tell and the catch is yours (+100). Name a human's and it's a strike."><b>3 · FLAG</b><span>the tell</span></div>
-    </div>
-    <!-- first read: the verb pair. second: resume/career. third: alternates + ticker -->
+    <p class="sub">One of the five is a machine. Only the postmark gives it away — and you're the only clerk who can read it.</p>
+    <!-- first read: the verb pair. second: resume/career. third: alternates.
+         The how-to lives in the night-zero beats now — the title says one thing. -->
     <div class="resume-slot" id="resumeSlot"></div>
     <div class="title-btns">
       <button id="startBtn" class="stamp-btn" aria-label="Clock in" data-tip="Today's fresh docket — the same for everyone, changes daily">
@@ -269,14 +263,9 @@
       <button id="otTitleBtn" class="ghost read-3 hidden" data-tip="Endless mode: five more nights on generated rules, a fresh run every time">Overtime (endless)</button>
       <button id="machineTitleBtn" class="ghost locked read-3" data-tip="File like you belong — fool the wire as the machine. Locked until you clear overtime.">🔒 The Machine's Shift</button>
     </div>
-    <p class="legend">Three wrong stamps — either direction — and you're cut.</p>
+    <p class="legend">Three wrong stamps — either direction — and you're cut. <kbd>?</kbd> opens the handbook.</p>
     <p class="career-line hidden" id="careerLine"></p>
-    <div class="shift-ledger" id="shiftLedger" aria-label="What shifts in this game">
-      <span class="sl-k">shift (v.)</span>
-      <span class="sl-stage"><span class="sl-i on"><b>the postmark</b> — the only testimony on the desk</span><span class="sl-i"><b>the machine</b> — same face all week, its tells shift every night</span><span class="sl-i"><b>the desk</b> — five nights, and the strike count</span><span class="sl-i"><b>the wire</b> — it remembers every stamp you make</span><span class="sl-i"><b>who signs</b> — the last rule is yours to write</span></span>
-    </div>
     <div class="title-foot">
-      <p class="hint">Five nights. One machine, same face all week — its tells shift, and only the postmark gives it away. A wrong stamp is a strike, either direction; three and you're cut. Overtime runs a fresh docket with a new face; the Machine's Shift flips the desk. Sound recommended — <kbd>?</kbd> opens the handbook.</p>
       <p class="music-credit">music · <a href="https://weloveindies.com" rel="noopener">WeLoveIndies</a> (F/demo license)</p>
     </div>
     <!-- attract reel: after idle, the desk keeps working without you.
@@ -460,7 +449,9 @@
       <div class="brief-card">
         <p class="brief-day" id="briefDay">DAY 1</p>
         <p class="brief-theme" id="briefTheme">🌅 THE DAWN</p>
+        <div id="briefFaces" class="brief-faces hidden"></div>
         <p class="brief-riddle" id="briefRiddle"></p>
+        <div id="briefCompare" class="hidden"></div>
         <p class="brief-aria"><span class="brief-who" id="briefWho">ARIA //</span> <span id="briefAria"></span></p>
         <p class="brief-skip">tap or press any key</p>
       </div>

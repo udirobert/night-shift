@@ -2133,6 +2133,31 @@ body[data-shift="night"] #docket td.c-fact.tag-match {
   font-size: 9.5px; letter-spacing: .2em; color: #5a6478;
   text-transform: uppercase; text-align: right; margin: 10px 0 0;
 }
+/* night-zero beats: the five faces (beat 1) and the postmark baseline
+   strip (beat 2) ride the brief card — one thing per screen */
+.brief-faces {
+  display: flex; justify-content: center; gap: 16px;
+  margin: 2px 0 14px;
+}
+.brief-face {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  animation: briefIn .5s cubic-bezier(.2, .9, .25, 1) both;
+}
+.brief-face:nth-child(2) { animation-delay: .06s; }
+.brief-face:nth-child(3) { animation-delay: .12s; }
+.brief-face:nth-child(4) { animation-delay: .18s; }
+.brief-face:nth-child(5) { animation-delay: .24s; }
+.brief-face img {
+  width: 52px; height: 52px; border-radius: 50%;
+  object-fit: cover; border: 2px solid #8a6a2f;
+  filter: saturate(.85) brightness(.92);
+}
+.brief-face img.missing { visibility: hidden; }
+.brief-face span {
+  font-family: ui-monospace, monospace; font-size: 10px;
+  letter-spacing: .12em; color: #b7a98a;
+}
+.brief-card .rc-compare { margin: 0 0 14px; }
 
 /* desk dims behind the brief */
 body.brief-up #frame { filter: brightness(.5) saturate(.8); }

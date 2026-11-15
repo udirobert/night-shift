@@ -51,7 +51,7 @@ const click = (el) => el.dispatchEvent(new window.MouseEvent("click", { bubbles:
 async function workNight() {
   let caught = false;
   for (let i = 0; i < G().auditSubs.length; i++) {
-    window.eval(`G.auditIdx = ${i}; G.auditLocked = false;`);
+    window.eval(`clearLater(); G.auditIdx = ${i}; G.auditLocked = false;`);
     window.renderCase();
     await sleep(120);
     const sub = G().auditSubs[i];
@@ -78,23 +78,21 @@ await sleep(300);
 window.startGame("spine-week-1");
 await sleep(400);
 
-/* — the tray (night 0): two filings, teach the contrast — */
+/* — night zero: three beats, then the catch — */
 ok("cold open opens the week", G().coldOpen === true && G().phase === "audit");
 await sleep(1200);
-/* case 1 is read-only (the clerk's cleared filing) */
-click($("#shiftBrief")); // dismiss the memo if it's up
-await sleep(200);
-click($("#caseCard"));
-await sleep(300);
-/* case 2 is the machine's — stamp it + point at its tell */
-const bot2 = G().auditSubs[1];
+click($("#shiftBrief")); // beat 1 (the desk) → beat 2 (the postmark)
+await sleep(400);
+click($("#shiftBrief")); // beat 2 → beat 3 (the case, live verbs)
+await sleep(400);
+ok("the tray's one filing is the machine's", G().auditSubs.length === 1 && G().auditSubs[0].filer === G().culprit);
+const bot0 = G().auditSubs[0];
+window.eval("clearLater()");
 window.stamp("SUS");
 await sleep(200);
-window.flagField(bot2.tel.tells[0]);
+window.flagField(bot0.tel.tells[0]);
+ok("tray caught via the postmark", bot0.pick === "SUS" && bot0.correct === true);
 await sleep(2800);
-ok("tray caught or hunched (flow completes)", bot2.pick === "SUS");
-click($("#caseCard"));
-await sleep(400);
 ok("tray summary shows", !$("#auditSummary").classList.contains("hidden"));
 const trayBtn = d.querySelector("#auditActions button");
 ok("tray offers the first night", /night one/i.test(trayBtn.textContent));

@@ -199,7 +199,9 @@ function initAmbient() {
     lfo.connect(filter.frequency);
 
     const droneGain = ac.createGain();
-    droneGain.gain.value = 0.035;
+    // below notice: any 55Hz you can hear is a hum, not a room (player
+    // report, twice now) — the room tone lives in the hiss and crackle
+    droneGain.gain.value = 0.006;
 
     osc1.connect(filter);
     osc2.connect(filter);
@@ -233,8 +235,9 @@ function initAmbient() {
     noiseGain.connect(master);
 
     // Rain on the office window — two filtered noise layers, patter + wash.
-    // Routed to destination, not `master`: the drone only runs as the mp3
-    // fallback, but the weather should be there under the real score too.
+    // Routed to destination, not `master`: the room tone rides `master`
+    // (hiss, crackle, the drone now below notice), and the weather should
+    // be there under the real score too.
     const rainBuf = ac.createBuffer(1, bufLen, ac.sampleRate);
     const rd = rainBuf.getChannelData(0);
     for (let i = 0; i < bufLen; i++) rd[i] = Math.random() * 2 - 1;
@@ -321,6 +324,14 @@ function musicDuck(on) {
   }
   // the chart ducks too — the amendment lands on top of everything
   scoreSynth.duck(on);
+  // and the licensed track bends — the amendment outranks the band
+  const trk = licensed.title;
+  if (trk && !audioMuted && !trk.__fadeOut) {
+    const v1 = on ? 0.14 : 0.4;
+    for (let i = 1; i <= 8; i++) {
+      setTimeout(() => { if (licensed.title === trk && !trk.__fadeOut) trk.volume += (v1 - trk.volume) / 3; }, i * 50);
+    }
+  }
 }
 
 function setValeDissonance(on) {
@@ -377,14 +388,11 @@ const score = {
   setMuted() { scoreSynth.mutedState = audioMuted; scoreSynth.setMuted(); },
 };
 function applyScore() {
-  // tension is a night-desk thing — the last call sits a little higher
-  // than the day shift, lower than a hot audit. The machine's shift
-  // climbs its own ramp: each forged night the wire listens closer.
-  scoreSynth.setIntensity(G.phase === "audit" ? scoreSynth.intensity
-    : G.phase === "finale" ? 0.55
-    : G.phase === "forge" ? 0.45 + G.day * 0.18
-    : 0.3);
-  score.play({ day: "day", verdict: "day", audit: "night", finale: "night", forge: "night" }[G.phase]);
+  // one licensed track carries the whole shift (player call: the
+  // WeLoveIndies jazz, not the synth chart). The synth speaks only in
+  // stings — the catch horn, the dawn resolve. Absent file → silence,
+  // and the desk still works.
+  if (G.phase !== "dawn") playLicensed("title", { loop: true });
 }
 
 // ---------- skippable timers ----------
@@ -432,8 +440,7 @@ const INSTR = {
   dayLiar: "Deduce ARIA's secret rule. SHIFT cycles the column. ⚠ One ruling below is a clerical error — tap it for +100.",
   verdict: "The rule is unsealed. Here's how your card did.",
   night: "Five filings, one is a machine. Read the postmark — stamp it SUS, and point at the field that gives it away.",
-  cold1: "His judgment is on the filing below. Read it — tap anywhere to continue.",
-  cold2: "Compare the claim to the postmark. Then stamp SUS or HUMAN.",
+  coldCatch: "This filing is on your desk. Read the postmark — stamp it SUS, then point at the field that gives it away.",
   finale: "The last filing of the week is the machine's. Read its postmark. Sign the clause — and it's cut. Or sign the one that lets it belong.",
   forge: "The proof is filed. Now forge the postmark — 1–4 patch a field, Enter transmits. Unspent cover banks overnight.",
 };
@@ -580,14 +587,14 @@ const ARIA = {
     "One filing on this docket isn't human. Read the postmark, not the paper.",
   ],
   coldOpen: [
-    "The tray he left: one cleared, one he couldn't. His cleared filing is your textbook — the other one is yours.",
+    "You're the night clerk. I check facts; I can't check this one. You read what the wire can't — that's the job.",
   ],
   coldFirst: [
-    "He cleared that one. Watch how it reads — a person's postmark: messy latency, a real gate, a receipt with human patience in it. That's your textbook.",
+    "Humans file messy — latency in the hundreds, a real gate, relays, a receipt that waits. This one didn't wait.",
   ],
   coldCompare: [
-    "Same desk, same night, two postmarks. One reads like a person. The other reads like it measured itself.",
-    "A receipt is stamped by the wire, not written by the filer. Compare the two.",
+    "You caught it on the postmark — not the prose, not a hunch. The paper held.",
+    "It knows the desk read it. From tomorrow it files cleaner. Watch the postmark, not the face.",
   ],
   // she keeps the room alive between rulings — rare, dry, never instructional
   idle: [
@@ -933,22 +940,13 @@ function stageDay(d) {
       if (n >= full.length) clearInterval(briefTypeTimer);
     }, 28);
   }
-  // the main-title theme swells under the first brief, then hands off
-  score.play(G.day === 0 ? "title" : "day");
   later(endBrief, calmMotion() ? 1500 : 3400);
 }
-/* the orientation memo: before the tray's density lands, the player gets
- * their role and the night's two interactions — read his judgment, make
- * yours. Same memo card as the day brief; one teaching beat, skippable. */
-function stageCold() {
-  briefKind = "cold";
-  $("briefDay").textContent = "NIGHT SHIFT · A DEDUCTION GAME";
-  $("briefTheme").textContent = "🌙 NIGHT 0 — THE TRAY";
-  $("briefWho").textContent = "THE DESK //";
-  $("briefAria").textContent =
-    "Read the claim. Read the postmark. Then stamp HUMAN or SUS — that is every night of this week.";
+/* night zero, one thing per screen: the faces, then the postmark
+ * baseline, then the case. Same memo card as the day brief; each beat
+ * types itself, waits for a tap, and hands the desk to the next thing. */
+function briefType(full) {
   const riddleEl = $("briefRiddle");
-  const full = "Five shifts. One machine, wearing a human face. Its filings read perfectly — only the postmark gives it away.";
   riddleEl.textContent = "";
   $("shiftBrief").classList.remove("hidden");
   document.body.classList.add("brief-up");
@@ -964,23 +962,56 @@ function stageCold() {
       if (n >= full.length) clearInterval(briefTypeTimer);
     }, 28);
   }
-  // no auto-dismiss: the player reads the night's terms at their own pace,
-  // then taps — push revelation only earns its keep when it's unhurried
+  // no auto-dismiss: the player reads the beat at their own pace, then taps
+}
+function stageCold() {
+  briefKind = "cold";
+  G.coldBeat = 1;
+  $("briefDay").textContent = "NIGHT SHIFT · LAST HUMAN STANDING";
+  $("briefTheme").textContent = "🌙 NIGHT 0 — THE DESK";
+  $("briefWho").textContent = "ARIA //";
+  $("briefAria").textContent = ARIA.coldOpen[0];
+  $("briefCompare").classList.add("hidden");
+  const faces = $("briefFaces");
+  faces.innerHTML = [G.culprit, ...humans()].map((f) =>
+    `<div class="brief-face"><img src="art/${f.toLowerCase()}.webp" alt="" loading="lazy" onerror="this.classList.add('missing')"><span>${f}</span></div>`).join("");
+  faces.classList.remove("hidden");
+  briefType("Five colleagues file while the city sleeps. One of them is a machine — it wants to be filed as human. Only the postmark says otherwise.");
+}
+function stageColdBeat2() {
+  G.coldBeat = 2;
+  $("briefTheme").textContent = "🌙 NIGHT 0 — THE POSTMARK";
+  $("briefAria").textContent = ARIA.coldFirst[0];
+  $("briefFaces").classList.add("hidden");
+  const cmp = $("briefCompare");
+  cmp.innerHTML = coldBeatCompareHTML();
+  cmp.classList.remove("hidden");
+  briefType("A person's paper arrives late, damp, routed through the world. The other one arrived perfect. Perfect is the tell.");
 }
 function endBrief() {
   if (!briefOpen) return;
+  if (briefKind === "cold" && G.coldBeat === 1) { stageColdBeat2(); return; }
   briefOpen = false;
   clearInterval(briefTypeTimer);
   $("shiftBrief").classList.add("hidden");
   document.body.classList.remove("brief-up");
-  // the cold-open tray is already on the desk under the memo — nothing to deal
-  if (briefKind === "cold") { sfx.tick(); return; }
+  if (briefKind === "cold") {
+    // beat 3: the case arrives — live verbs, one instruction
+    G.coldBeat = 3;
+    $("briefFaces").classList.add("hidden");
+    $("briefCompare").classList.add("hidden");
+    $("caseBtns").classList.remove("hidden");
+    setInstr("coldCatch");
+    renderCase();
+    if (!calmMotion()) later(() => sfx.riffle(), 120);
+    persist();
+    return;
+  }
   dayPhase.classList.add("dealt");
   const rows = $("docketBody").children.length;
   // a stamp tick per row as the ink lands, then the hand riffles in
   for (let i = 0; i < Math.min(rows, 8); i++) later(() => sfx.tick(), 200 + i * 110);
   later(() => sfx.riffle(), 420);
-  if (G.day === 0) later(() => score.play("day"), 1400);
   later(() => dayPhase.classList.remove("staging", "dealt"), 1500 + rows * 110);
 }
 
@@ -1573,7 +1604,6 @@ function wireVerdict() {
   // the reveal earns its beat: the wire reads the stub before it answers
   sfx.slide();
   burstAt($("forgeCard"), "dust", 10);
-  scoreSynth.setIntensity(Math.min(0.95, scoreSynth.intensity + 0.12));
   try { navigator.vibrate?.(12); } catch { /* no haptics */ }
   renderForge();
   later(resolveForge, 850);
@@ -1752,7 +1782,7 @@ function startAudit(resume) {
   if (!resume) G.coldOpen = false;
   banner("NIGHT SHIFT — you are the desk now");
   showOnly("audit");
-  setInstr(G.coldOpen ? (G.auditIdx === 0 ? "cold1" : "cold2") : "night");
+  setInstr(G.coldOpen ? "coldCatch" : "night");
   const d = DAYS[G.day];
   // the desk deals under the standing rule: the night's judgment is the
   // postmark, and the mid-shift amendment was the paper game's weather
@@ -1761,7 +1791,7 @@ function startAudit(resume) {
   if (!resume) {
     ariaSay([ARIA.auditOpen[Math.min(G.day, ARIA.auditOpen.length - 1)]]);
   }
-  renderRuleChips(G.coldOpen ? COLD_RULE : d.rule, false);
+  renderNightOrder();
 
   if (!resume) {
     const { cases } = LOGIC.auditSet(CARDS, d.amend ? { ...d, amend: null } : d,
@@ -1839,26 +1869,23 @@ function startAudit(resume) {
   persist();
 }
 
-/* ---------- cold open: the tray ----------
- * Clock-in lands on the night desk, not the day grid — two filings the
- * outgoing clerk couldn't clear, judged under last week's standing order.
- * Ninety seconds covering every verb the week uses: stamp, verdict,
- * postmark, flag, catch-or-miss. Then 06:00 and the day crew's docket. */
+/* ---------- cold open: night zero ----------
+ * Clock-in lands on the night desk. Three beats, one thing per screen:
+ * the five faces you work with, the postmark baseline (a person's strip
+ * next to an impossible one), then the machine's own filing — live
+ * verbs, teaching grace, no strikes. Then the first real night. */
 const COLD_RULE = [{ key: "setting", allow: ["indoor"], text: "indoors" }];
 const COLD_BOT_CARD = {
   id: "cold-vale", name: "The overnight reading room", glyph: "🗄",
-  argument: "Third floor, after close. The quiet was very thorough — I measured it.",
+  argument: "Third floor, after close. Somebody left the light on over the atlases. Filed it anyway.",
   tags: { place: "library", time: "night", people: "alone", setting: "indoor" },
 };
 function startColdOpen() {
   G.coldOpen = true;
-  banner("02:40 — THE TRAY");
+  banner("02:40 — NIGHT ZERO");
   showOnly("audit");
-  setInstr("cold1");
-  ariaSay([ARIA.coldOpen[0]]);
-  renderRuleChips(COLD_RULE, false);
+  renderNightOrder();
   const trng = stream("coldopen");
-  const roster = [...humans()];
   const mk = (card, filer, extra) => {
     const filed = fmtFiled(40 + Math.floor(trng() * 500));
     const tel = filer === G.culprit ? botTel(0, trng, filed) : humanTel(trng, filed);
@@ -1872,19 +1899,18 @@ function startColdOpen() {
       ...extra,
     };
   };
-  // the first filing arrives pre-stamped by the outgoing clerk: the player
-  // doesn't judge it, they read his strip against his stamp — the first
-  // active judgment of the night is the machine's, taught by the contrast
-  const first = mk(CARDS.find((c) => c.id === "library-regular"),
-    roster[Math.floor(trng() * roster.length)]);
-  first.preStamped = true;
-  first.pick = "HUMAN";
-  first.correct = true;
-  first.earned = 0;
-  G.auditSubs = [
-    first,
-    mk(COLD_BOT_CARD, G.culprit, { arg: COLD_BOT_CARD.argument }),
-  ];
+  // beat 2's textbook: a real person's postmark, dealt like any other
+  const roster = [...humans()];
+  const refFiled = fmtFiled(40 + Math.floor(trng() * 500));
+  G.coldRef = {
+    filer: roster[Math.floor(trng() * roster.length)],
+    filed: refFiled,
+    tel: humanTel(trng, refFiled),
+  };
+  // one filing on the desk tonight: the machine's. The player meets the
+  // desk first (beat 1), learns the baseline (beat 2), then catches it
+  // with the desk watching (beat 3).
+  G.auditSubs = [mk(COLD_BOT_CARD, G.culprit, { arg: COLD_BOT_CARD.argument })];
   G.auditIdx = 0;
   G.contestedIdx = -1;
   G.amendAfter = null;
@@ -1895,14 +1921,22 @@ function startColdOpen() {
   trayFiledShown = 0;
   $("auditSummary").classList.add("hidden");
   $("auditActions").innerHTML = "";
-  $("caseBtns").classList.remove("hidden");
+  // the desk stays empty behind the orientation beats — one thing per
+  // screen; the case arrives with its verbs at beat 3
+  $("caseCard").innerHTML = "";
+  $("caseBtns").classList.add("hidden");
   hud();
-  renderCase();
-  // the pre-stamped filing waits for a tap, not a stamp — the desk is
-  // locked until it slides away
-  G.auditLocked = true;
-  // one orientation beat before the tray's density lands: role + the two
-  // interactions tonight asks for, then the first case is read alone
+  if (G.coldBeat >= 3) {
+    // resumed mid-case: no orientation replay, straight to the filing
+    setInstr("coldCatch");
+    $("caseBtns").classList.remove("hidden");
+    renderCase();
+    const cur = G.auditSubs[G.auditIdx];
+    if (cur && cur.pick !== null) G.auditLocked = true;
+    persist();
+    return;
+  }
+  G.coldBeat = 1;
   stageCold();
   persist();
 }
@@ -1917,8 +1951,8 @@ function endColdOpen() {
   const caught = botSub && botSub.pick === "SUS" && botSub.correct;
   s.innerHTML = `<p class="sum-line">TRAY CLEARED</p>
     <p class="sum-effect">${caught
-      ? "⚡ anomaly quarantined on your first night — the desk noticed"
-      : "one filing cleared faster than the ink could dry"}</p>
+      ? "⚡ caught on your first night — the desk noticed. From tomorrow it files cleaner."
+      : "it walked tonight — night zero forgives it. From tomorrow, it costs."}</p>
     <p class="sum-vale quiet">· the wire clears the desk — the first real night is yours.</p>`;
   const actions = $("auditActions");
   actions.innerHTML = "";
@@ -1952,6 +1986,14 @@ function flagField(k) {
   sub.flagKey = k || null;
   const caught = sub.filer === G.culprit && !!k && sub.tel.tells.includes(k);
   setValeDissonance(false);
+  // night zero is the lesson, not the test: a wrong field re-asks instead
+  // of resolving — the catch has to be pointed at the impossible, once.
+  if (G.coldOpen && sub.filer === G.culprit && !!k && !caught) {
+    sub.pendingFlag = true;
+    wire("the desk: that field reads human — point at the one that can't be");
+    renderCase();
+    return;
+  }
   if (caught) {
     sub.correct = true;
     sub.earned = 100;
@@ -1972,10 +2014,10 @@ function flagField(k) {
       : priorTells === 1 ? " · same tell as before — the wire remembers"
       : ` · ${TEL_LABEL[k]} again — ${priorTells + 1}× this run, the wire keeps score`;
     wire(`ANOMALY · ${TEL_LABEL[k]} ${sub.tel[k]} · +100${tellNote}`);
-    ariaSay([
+    ariaSay(G.coldOpen ? ARIA.coldCompare : [
       `Wait — you stamped SUS on paper that passed, on grounds of ${TEL_LABEL[k]} ${sub.tel[k]}. You caught something my code couldn't see.`,
       "ANOMALY QUARANTINED. You read the postmark, not just the paper. Well done."
-    ], "smug");
+    ], G.coldOpen ? "soft" : "smug");
   } else {
     sub.correct = false;
     sub.earned = 0;
@@ -2029,26 +2071,29 @@ function flagField(k) {
   }
 }
 
-/* Cold open, second filing: the two receipts side by side, aligned row by
- * row — claim, latency, origin, relays, receipt. For the human filing the
- * claim and the receipt agree (the receipt echoes the claim); for the
- * machine they contradict. The strip aligns; it never says which is wrong.
- * This is the baseline the rest of the week is read against. */
-function coldCompareHTML(sub) {
-  const prev = G.auditSubs[0];
-  if (!prev || prev === sub) return "";
-  // the right column IS this filing's postmark — the card's own stub stands
-  // down while the compare is up, so the desk reads one surface, not two
+/* Beat 2 of night zero: a person's receipt and the machine's, side by
+ * side, aligned row by row — claim, latency, origin, relays, receipt.
+ * The strip aligns; it never says which is wrong. This is the baseline
+ * the rest of the week is read against. */
+function coldBeatCompareHTML() {
+  const ref = G.coldRef, sub = G.auditSubs[0];
+  if (!ref || !sub) return "";
   const row = (label, a, b, k) =>
-    `<div class="rcc-row"${k ? ` data-tel="${k}" data-tip="${TEL_LABEL[k]} — ${TEL_TIPS[k]}"` : ""}><span class="rcc-k">${label}</span><span class="rcc-a">${a}</span><span class="rcc-b tel-val${sub.flagKey === k && sub.correct ? " hit" : ""}">${b}</span></div>`;
+    `<div class="rcc-row"${k ? ` data-tel="${k}" data-tip="${TEL_LABEL[k]} — ${TEL_TIPS[k]}"` : ""}><span class="rcc-k">${label}</span><span class="rcc-a">${a}</span><span class="rcc-b tel-val">${b}</span></div>`;
   return `<div class="rc-compare" aria-label="Postmark comparison">
-    <div class="rcc-head"><span class="rcc-k"></span><span class="rcc-a">${prev.filer} — stamped</span><span class="rcc-b">${sub.filer} — on your desk</span></div>
-    ${row("CLAIM", prev.filed, sub.filed)}
-    ${row(TEL_LABEL.latency, prev.tel.latency, sub.tel.latency, "latency")}
-    ${row(TEL_LABEL.origin, prev.tel.origin, sub.tel.origin, "origin")}
-    ${row(TEL_LABEL.hops, "×" + prev.tel.hops, "×" + sub.tel.hops, "hops")}
-    ${row(TEL_LABEL.receipt, prev.tel.receipt, sub.tel.receipt, "receipt")}
+    <div class="rcc-head"><span class="rcc-k"></span><span class="rcc-a">${ref.filer} — a person</span><span class="rcc-b">${sub.filer} — on your desk</span></div>
+    ${row("CLAIM", ref.filed, sub.filed)}
+    ${row(TEL_LABEL.latency, ref.tel.latency, sub.tel.latency, "latency")}
+    ${row(TEL_LABEL.origin, ref.tel.origin, sub.tel.origin, "origin")}
+    ${row(TEL_LABEL.hops, "×" + ref.tel.hops, "×" + sub.tel.hops, "hops")}
+    ${row(TEL_LABEL.receipt, ref.tel.receipt, sub.tel.receipt, "receipt")}
   </div>`;
+}
+/* the night desk carries no ARIA rule — the paper game's weather stays on
+ * the day docket. One standing order, printed once, nothing else. */
+function renderNightOrder() {
+  $("ruleChips").innerHTML =
+    `<span class="rc-label">THE DESK — the postmark is the only testimony</span>`;
 }
 
 /* the night's paperwork, made visible: face-down cards still in the pile,
@@ -2087,24 +2132,19 @@ function renderCase() {
   // the facts print plain — no rule marks on the night card. The paper is
   // context; the only judgment is the postmark.
   const verdicts = null;
-  const arg = sub.filer === G.culprit
-    ? (sub.arg || DAYS[G.day].valeLine + " " + (VALE_ARC[Math.min(G.day, VALE_ARC.length - 1)] || ""))
-    : sub.card.argument;
+  // the machine's prose wears the pool's human voice — the postmark is
+  // the only testimony, so nothing on the card face may read "machine".
+  // Its own voice arrives after the catch, where it's a payoff, not a tell.
+  const arg = sub.arg || sub.card.argument;
   const isBot = sub.filer === G.culprit;
-  // cold open, second filing: align the receipts, teach the contrast once
-  const compare = G.coldOpen && G.auditIdx === 1 ? coldCompareHTML(sub) : "";
-  if (compare && !G.coldTaught) {
-    G.coldTaught = true;
-    ariaSay(ARIA.coldCompare);
-  } else if (G.coldOpen && G.auditIdx === 0 && !G.coldTaught) {
-    ariaSay(ARIA.coldFirst); // the default is HUMAN — SUS needs a reason
-  }
 
   let reason = "";
   if (sub.pick && !sub.pendingFlag) {
     if (isBot) {
       if (sub.pick === "SUS" && sub.correct) {
         reason = `⚡ ANOMALY QUARANTINED — ${TEL_LABEL[sub.flagKey]} ${sub.tel[sub.flagKey]}. No human files that. +100 bounty`;
+        // its first word arrives with the catch — a payoff, not a tell
+        if (G.coldOpen) reason += ` It said: “${VALE_ARC[0]}”`;
       } else if (sub.correct) {
         reason = `✔ human — the postmark reads like a person's`;
       } else if (sub.pick === "SUS") {
@@ -2116,8 +2156,11 @@ function renderCase() {
       } else {
         // the loss names one field of evidence — enough to know the
         // postmark mattered, not enough to skip reading the next one.
-        // It cost you: a wave-through is a strike, same as a hunch.
-        reason = G.valeCaught > 0
+        // On a real night a wave-through costs a strike, same as a hunch;
+        // night zero teaches it for free.
+        reason = G.coldOpen
+          ? `✗ the postmark reads wrong: ${TEL_LABEL[sub.tel.tells[0]]} ${sub.tel[sub.tel.tells[0]]} — night zero forgives it. From tomorrow it's a mark.`
+          : G.valeCaught > 0
           ? `✗ You'd flagged that postmark before — and you stamped it through. STRIKE`
           : `✗ the postmark reads wrong: ${TEL_LABEL[sub.tel.tells[0]]} ${sub.tel[sub.tel.tells[0]]}. STRIKE`;
       }
@@ -2145,10 +2188,9 @@ function renderCase() {
     sub.echoWired = true;
     wire(`cross-ref — the desk already ruled on your DAY ${sub.echoDay} proof · SUS`);
   }
-  setInstr(G.coldOpen ? (G.auditIdx === 0 ? "cold1" : "cold2") : "night");
+  setInstr(G.coldOpen ? "coldCatch" : "night");
 
   el.innerHTML =
-    `${compare}` +
     `<p class="case-num">CASE ${G.auditIdx + 1}/${G.auditSubs.length}${contested ? ' · <span class="contested-tag"><b>\u2696 CONTESTED BONUS</b></span>' : ""}</p>` +
     `<div class="case-card ${sub.pick ? "stamped-" + sub.pick.toLowerCase() : "fresh"}${checked && isBot && sub.pick === "SUS" && sub.correct ? " anomaly" : ""}${contested && !checked ? " contested" : ""}${sub.pendingFlag ? " flagging" : ""}${sub.cleanDrop ? " clean-drop" : ""}"
       style="--tilt:${sub.tilt}deg; --stamprot:${sub.stampRot}deg">
@@ -2170,10 +2212,10 @@ function renderCase() {
       <p class="arg">“${arg}”</p>
       ${G.coldOpen ? "" : `<div class="case-note read-3">✎ ${sub.note}</div>`}
       ${factRows(sub.card, verdicts)}
-      ${compare ? "" : `<div class="case-stub read-2">
+      <div class="case-stub read-2">
         ${TEL_KEYS.map((k, ti) =>
           `<div class="tel-row" data-tel="${k}" data-tip="${TEL_LABEL[k]} ${sub.tel[k]} — ${TEL_TIPS[k]}" style="--i:${ti}"><span>${TEL_LABEL[k]}</span><span class="tel-val${sub.flagKey === k && sub.correct ? " hit" : ""}">${sub.tel[k]}</span></div>`).join("")}
-      </div>`}
+      </div>
       ${sub.pendingFlag ? `<div class="flag-row">
         <span class="flag-q">you stamped SUS — which field reads wrong?</span>
         ${TEL_KEYS.map((k, i) => {
@@ -2211,10 +2253,6 @@ function renderCase() {
     }
   }
   paintTray();
-  // the chart leans in as the night wears on — and harder when you've
-  // been right. Case five should not sound like case one.
-  scoreSynth.setIntensity(Math.min(0.92,
-    0.3 + G.auditIdx * 0.13 + G.auditHitsToday * 0.05 + G.flagHits * 0.04));
 }
 
 function stamp(pickVal) {
@@ -2245,13 +2283,15 @@ function stamp(pickVal) {
   // not a verdict.
   if (isBot) {
     // a wave-through is a wrong stamp — the stakes are symmetric: a
-    // wrong stamp is a strike, either direction. Letting it through
-    // costs; only reading the postmark is free.
+    // wrong stamp is a strike, either direction. Night zero teaches it
+    // free; every night after, letting it through costs.
     sub.correct = false;
     sub.earned = 0;
     G.valeEscapes++;
-    if (G.mode !== "machine" && G.status === "player" && G.strikes < 3) G.strikes++;
-    wire(`machine walked through — ${sub.filer} stamped HUMAN · strike`);
+    if (!G.coldOpen && G.mode !== "machine" && G.status === "player" && G.strikes < 3) G.strikes++;
+    wire(G.coldOpen
+      ? `machine walked through the tray — night zero forgives it; the week won't`
+      : `machine walked through — ${sub.filer} stamped HUMAN · strike`);
     if (G.valeCaught > 0) {
       ariaSay([
         "You'd seen that postmark before — and you stamped it through.",
@@ -2539,7 +2579,8 @@ function paintAuditSummary() {
   ];
   const valeLine = !botSub ? ""
     : (botSub.pick === "SUS" && botSub.correct)
-      ? `<p class="sum-vale ok">⚡ anomaly quarantined — the machine was on tonight's docket</p>`
+      ? `<p class="sum-vale ok">⚡ anomaly quarantined — the machine was on tonight's docket</p>` +
+        `<p class="sum-vale quiet">“${VALE_ARC[Math.min(G.day, VALE_ARC.length - 1)]}”</p>`
       : (botSub.pick === "SUS" && !botSub.correct)
         ? ""   // a hunch earns no postscript
         : G.valeCaught > 0
@@ -2813,7 +2854,9 @@ function endGame() {
       localStorage.getItem("night-shift-machine-unlocked") !== "1");
   } catch { /* no storage */ }
   document.body.dataset.end = cutEnd ? "cut" : "earned";
-  score.play(cutEnd ? "title" : "dawn");
+  // the synth's last word is the resolve chord — the licensed dawn
+  // track carries the ending itself
+  score.play("dawn");
   const acc = G.auditTotal ? Math.round((G.auditHits / G.auditTotal) * 100) : 0;
   const titleIdx = Math.min(JURY_TITLES.length - 1, Math.floor((acc / 100) * JURY_TITLES.length));
 
@@ -3285,7 +3328,7 @@ function persist() {
       lastMissKeys: G.lastMissKeys, elimDay: G.elimDay,
       dayResults: G.dayResults, nightResults: G.nightResults,
       focusAttr: G.focusAttr,
-      coldOpen: G.coldOpen, coldTaught: G.coldTaught,
+      coldOpen: G.coldOpen, coldTaught: G.coldTaught, coldBeat: G.coldBeat,
       amendAfter: G.amendAfter, amendShown: G.amendShown, amending: G.amending,
       auditIdx: G.auditIdx, contestedIdx: G.contestedIdx,
       auditHitsToday: G.auditHitsToday, nightPoints: G.nightPoints,
@@ -3477,7 +3520,7 @@ function resumeGame(s) {
     lastMissKeys: s.lastMissKeys, elimDay: s.elimDay,
     dayResults: s.dayResults || [], nightResults: s.nightResults || [],
     focusAttr: s.focusAttr || "all",
-    coldOpen: !!s.coldOpen, coldTaught: !!s.coldTaught,
+    coldOpen: !!s.coldOpen, coldTaught: !!s.coldTaught, coldBeat: s.coldBeat || 3,
     // a mid-amendment save restores as acknowledged: chips match the
     // cases' per-case rules, no klaxon replays on a fresh load
     amendAfter: s.amendAfter, amendShown: !!s.amendShown || !!s.amending,
@@ -3576,7 +3619,7 @@ function startOvertime(seed) {
     flagged: null, lastMissKeys: null, elimDay: 0,
     dayResults: [], nightResults: [], selected: null, hand: [], docket: [],
     filed: null, focusAttr: "all", finaleRows: null, finaleOpts: null,
-    finaleChoice: null, coldOpen: false, coldTaught: false,
+    finaleChoice: null, coldOpen: false, coldTaught: false, coldBeat: 0,
     nightSummarized: false, verdictDone: false, filing: false, wire: [],
     tellHistory: [], forgeHistory: [], filedIds: [],
     forgePatchCounts: [0, 0, 0, 0], echoSaid: false,
@@ -3612,7 +3655,7 @@ function startMachine(seed) {
     flagged: null, lastMissKeys: null, elimDay: 0,
     dayResults: [], nightResults: [], selected: null, hand: [], docket: [],
     filed: null, focusAttr: "all", finaleRows: null, finaleOpts: null,
-    finaleChoice: null, coldOpen: false, coldTaught: false,
+    finaleChoice: null, coldOpen: false, coldTaught: false, coldBeat: 0,
     nightSummarized: false, verdictDone: false, filing: false,
     cover: 0, forgeFlags: 0, forgeLog: [], forgeProof: [], forgeTiers: [0, 0, 0, 0], forgeSent: false,
     forgeBusy: false, wire: [], tellHistory: [], forgeHistory: [], filedIds: [],
@@ -3635,8 +3678,8 @@ let clockingIn = false;
 function clockIn(seed) {
   if (clockingIn) return;
   clockingIn = true;
-  stopLicensed("title");
-  // unlock audio on the gesture itself — the visual punch comes after
+  // the licensed jazz carries straight through the punch — clocking in
+  // changes your job, not the room
   audio();
   initAmbient();
   const b = $("startBtn");
