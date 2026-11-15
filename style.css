@@ -1,0 +1,2732 @@
+/* NIGHT SHIFT — bureaucratic case file.
+ * Day shift: warm manila paper, near-black ink, rubber stamps.
+ * Night shift: dark desk-lamp palette, amber accent.
+ * Driven by body[data-shift]; ~500ms colour transition between shifts.
+ *
+ * Color discipline (one alarm color, Everything-else-is-noise rule):
+ *   --accent (amber) is the desk's voice — selection, highlights, pay.
+ *     It is never urgency.
+ *   --red    is the single reserved alarm — anomalies, strikes, SUS,
+ *     amendment, CUT. If it's on screen, something is wrong.
+ *   --green  means the paper passed / the stamp was HUMAN.
+ * Nothing else gets a hue. */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body[data-shift="day"] {
+  --ink: #221c12;
+  --dim: #6b5f49;
+  --faint: #978a70;
+  --accent: #8a5a12;
+  --accent-dim: #b08a44;
+  --green: #2e6b34;
+  --red: #b03028;
+  --paper: #e9dfc8;
+  --card: #f4ecd8;
+  --line: #c9bb9c;
+  --btnink: #f4ecd8;
+  --btn: #8a5a12;
+  --btnshadow: #5e3d0b;
+  --glow: radial-gradient(1200px 600px at 50% -10%, #f4ecd8 0%, transparent 60%);
+}
+body[data-shift="night"] {
+  --ink: #ece5d8;
+  --dim: #8d8471;
+  --faint: #5c5546;
+  --accent: #e8b34b;
+  --accent-dim: #8a6a2f;
+  --green: #7fb069;
+  --red: #d96a5a;
+  --paper: #14161c;
+  --card: #1c1f27;
+  --line: #2e3240;
+  --btnink: #1a1408;
+  --btn: #e8b34b;
+  --btnshadow: #6b531f;
+  --glow: radial-gradient(1200px 600px at 50% -10%, #1d2230 0%, transparent 60%);
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--glow), var(--paper);
+  color: var(--ink);
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .5s ease, color .5s ease;
+}
+
+/* ---------- the room the desk sits in ---------- */
+body { background: #12141a; }
+body[data-shift="day"] { background: #e6dcc4; }
+#stage {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+}
+#stage > div { position: absolute; inset: 0; transition: opacity .65s ease; }
+#stage svg { display: block; width: 100%; height: 100%; }
+.stage-day { opacity: 1; }
+.stage-night { opacity: 0; }
+body[data-shift="night"] .stage-day { opacity: 0; }
+body[data-shift="night"] .stage-night { opacity: 1; }
+/* ---------- painted key art: the room the desk sits in, for real ----------
+   Three painted angles of one office, crossfaded by body[data-phase] —
+   the seat you're in: the clerk's chair by night (title), the same chair
+   by day (day shift), and the view from behind ARIA's terminal (night
+   shift — the perspective flip: the judged becomes the judge). A missing
+   file (display:none) leaves the SVG scene beneath it. */
+#stage .stage-art { position: absolute; inset: 0; }
+/* the grade: every painted image runs through one LUT-ish filter so the
+ * gouache set and the paper UI share a single color world — lifted
+ * blacks (sepia), a cooler wet-street cast, and a touch more contrast.
+ * The ::after scrims below keep doing the readable-frame work. */
+#stage .bg-art,
+.case-photo img {
+  filter: saturate(0.72) sepia(0.14) contrast(1.06) brightness(0.97);
+}
+body[data-shift="day"] #stage .bg-art {
+  filter: saturate(0.8) sepia(0.1) contrast(1.03) brightness(1.04);
+}
+/* the SVG fallback room runs the same grade as the painted art — one
+ * color world whether the gouache files load or not (The Sapling rule:
+ * vignette + matching light + color correction = a unified look) */
+#stage .stage-day,
+#stage .stage-night {
+  filter: saturate(0.72) sepia(0.14) contrast(1.06) brightness(0.97);
+}
+body[data-shift="day"] #stage .stage-day {
+  filter: saturate(0.8) sepia(0.1) contrast(1.03) brightness(1.04);
+}
+#stage .bg-art {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0;
+  transition: opacity 1.2s ease;
+}
+#stage .bg-art.missing { display: none; }
+/* no painted files at all → the SVG room carries the frame alone */
+#stage .stage-art.no-art { display: none; }
+body[data-phase="title"] #stage .bg-room-night,
+body[data-phase="day"] #stage .bg-room-day,
+body[data-phase="verdict"] #stage .bg-room-day,
+body[data-phase="audit"] #stage .bg-room-aria,
+body[data-phase="finale"] #stage .bg-room-aria { opacity: 1; }
+/* the week's endings paint the last room: gold dawn if you earned it,
+   the blue automated office if you didn't */
+body[data-phase="dawn"] #stage .bg-dawn { opacity: 1; }
+body[data-phase="dawn"][data-end="cut"] #stage .bg-dawn { opacity: 0; }
+body[data-phase="dawn"][data-end="cut"] #stage .bg-dawn-automated { opacity: 1; }
+/* the painted room sits behind the paper, never over it — a soft scrim
+   keeps the frame's text panels readable on the brightest paintings */
+#stage .stage-art::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 40%, transparent 30%, rgba(9, 10, 14, .5) 100%),
+    linear-gradient(rgba(9, 10, 14, .22), rgba(9, 10, 14, .3));
+  pointer-events: none;
+}
+body[data-shift="day"] #stage .stage-art::after {
+  background:
+    radial-gradient(120% 90% at 50% 40%, transparent 35%, rgba(64, 52, 26, .34) 100%),
+    linear-gradient(rgba(240, 232, 208, .16), rgba(64, 52, 26, .2));
+}
+/* day: the blinds breathe as clouds cross the window */
+.stage-day .beams { animation: cloudpass 26s ease-in-out infinite; }
+@keyframes cloudpass { 50% { opacity: .55; } }
+.stage-night .cone { animation: conebreathe 9s ease-in-out infinite; transform-origin: 50% 0; }
+@keyframes conebreathe {
+  50% { opacity: .82; transform: scaleX(1.03); }
+}
+.stage-night .nightbulb { animation: bulbflicker 9s linear infinite; }
+.stage-night .dm { animation: motedrift 9s linear infinite; opacity: 0; }
+.stage-night .dm2 { animation-delay: 3s; }
+.stage-night .dm3 { animation-delay: 6s; }
+/* dust in the lamplight — the painted rooms are stills, so the air itself
+   carries the only motion between stamps. Faint on purpose: atmosphere,
+   never information. Sits above the paintings, under the frame. */
+.desk-motes { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1.2s ease; }
+.desk-motes i {
+  position: absolute; left: var(--x); top: var(--y);
+  width: var(--s); height: var(--s); border-radius: 50%;
+  background: #e8b34b; opacity: 0;
+  animation: motefloat var(--d) linear infinite;
+  animation-delay: var(--dl, 0s);
+}
+@keyframes motefloat {
+  0% { opacity: 0; transform: translate(0, 10px); }
+  18% { opacity: .55; }
+  82% { opacity: .3; }
+  100% { opacity: 0; transform: translate(var(--sx, 12px), -150px); }
+}
+body[data-shift="night"] .desk-motes { opacity: 1; }
+/* day shift: the same dust, but in window light — cooler, slower, fewer */
+body[data-shift="day"] .desk-motes { opacity: .8; }
+body[data-shift="day"] .desk-motes i { background: #fff3d0; animation-duration: calc(var(--d) * 1.4); }
+
+/* night: ARIA's surveillance sweep passes over everything, softly */
+.scanline {
+  position: fixed; left: 0; right: 0; top: 0; height: 200px; z-index: 55;
+  pointer-events: none; opacity: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(232,179,75,.05) 55%, rgba(232,179,75,.11) 82%, transparent 100%);
+}
+body[data-shift="night"] .scanline { animation: surveillance 13s linear infinite; }
+@keyframes surveillance {
+  0% { transform: translateY(-210px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+#frame {
+  max-width: 760px; margin: 0 auto; min-height: 100%; padding: 18px 16px 40px;
+  position: relative; z-index: 1;
+}
+
+.hidden { display: none !important; }
+
+.mono, #instr, .sec-head, .riddle-kicker, .riddle-hint, #docket, .fk, .mk,
+.case-num, .case-verdict, .rc-label, .chip, #crowdPct, #hud, .sum-line,
+.sum-effect, .legend, .hint, .kicker, #fileBtn, .vb, .day-label,
+.strikes-label, .steps, .dossier-head, .dossier-meta {
+  font-family: ui-monospace, "SF Mono", Menlo, "Courier New", monospace;
+}
+
+/* ---------- shift banner ---------- */
+#banner {
+  position: fixed; inset: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+#banner span {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: clamp(18px, 4.5vw, 30px); letter-spacing: .25em; text-transform: uppercase;
+  color: var(--ink); background: var(--paper);
+  border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink);
+  padding: 14px 26px;
+}
+#banner.run span { animation: bannerin 1.25s ease forwards; }
+@keyframes bannerin {
+  0% { opacity: 0; transform: translateY(10px); }
+  15% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------- overlays ---------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; text-align: center; padding: 24px;
+  background: radial-gradient(900px 500px at 50% 40%, #171a22 0%, #14161c 75%);
+  color: #ece5d8;
+}
+.overlay .kicker {
+  font-size: 11px; letter-spacing: .22em; color: #8d8471; text-transform: uppercase;
+}
+.overlay h1 {
+  font-size: clamp(42px, 9vw, 72px); font-weight: 600; letter-spacing: .06em;
+}
+.overlay .sub { color: #8d8471; font-size: 15px; line-height: 1.7; }
+.steps { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #c9c2b2; }
+.steps b { color: #e8b34b; margin-right: 8px; }
+.legend {
+  font-size: 11px; letter-spacing: .12em; color: #a85a50;
+  text-transform: uppercase;
+}
+.hint { font-size: 11px; color: #5c5546; letter-spacing: .08em; }
+/* post-credits exit — a quiet pointer to the live desk, nothing more */
+a.live-link {
+  display: block; margin-top: 20px; font-size: 10.5px; color: #9a8a68;
+  letter-spacing: .1em; text-decoration: none;
+}
+a.live-link:hover { color: #e8b34b; }
+
+button {
+  font-family: inherit; font-size: 15px; letter-spacing: .04em;
+  background: var(--btn); color: var(--btnink); border: 0; border-radius: 3px;
+  padding: 12px 26px; cursor: pointer; min-height: 44px;
+  box-shadow: 0 2px 0 var(--btnshadow);
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+.overlay button { background: #e8b34b; color: #1a1408; box-shadow: 0 2px 0 #6b531f; }
+button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 0 var(--btnshadow); }
+button:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 var(--btnshadow); }
+button:disabled { opacity: .45; cursor: default; }
+
+/* ---------- title: the night desk ---------- */
+#title { gap: 12px; }
+/* the SHIFT ledger — the theme, as five verbs on a card */
+.shift-ledger {
+  display: flex; gap: 10px; align-items: center; justify-content: center;
+  max-width: 560px; padding: 9px 18px;
+  border: 1px solid #2e3240; border-radius: 6px; background: rgba(25, 28, 34, .72);
+  transform: rotate(-.4deg);
+}
+.shift-ledger .sl-k {
+  font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .3em;
+  color: #5c5546; flex-shrink: 0;
+}
+/* the ledger is a ticker: one definition at a time, the desk keeps
+   turning the card — theme as motion, not a wall of text */
+.shift-ledger .sl-stage {
+  position: relative; flex: 1; min-height: 1.4em; text-align: left;
+}
+.shift-ledger .sl-i {
+  position: absolute; inset: 0; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; opacity: 0; transform: translateY(5px);
+  transition: opacity .5s ease, transform .5s ease;
+  font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 12.5px;
+  color: #a89f8d; letter-spacing: .02em; pointer-events: none;
+}
+.shift-ledger .sl-i.on { opacity: 1; transform: none; }
+.shift-ledger .sl-i b {
+  font-family: ui-monospace, monospace; font-weight: 600; font-size: 10.5px;
+  letter-spacing: .14em; color: #e8b34b;
+}
+body[data-shift="day"] .shift-ledger { border-color: var(--line); background: rgba(233, 223, 200, .6); }
+body[data-shift="day"] .shift-ledger .sl-i { color: var(--dim); }
+body[data-shift="day"] .shift-ledger .sl-i b { color: var(--accent); }
+.title-scene { width: min(560px, 92vw); animation: scenein .9s ease backwards; }
+.title-scene svg { display: block; width: 100%; height: auto; }
+@keyframes scenein { from { opacity: 0; transform: translateY(14px); } }
+.title-scene .steam {
+  fill: none; stroke: #ece5d8; stroke-width: 3; stroke-linecap: round; opacity: 0;
+  animation: steamrise 3.4s ease-in-out infinite;
+}
+.title-scene .steam.s2 { animation-delay: 1.7s; }
+@keyframes steamrise {
+  0% { opacity: 0; transform: translateY(6px); }
+  35% { opacity: .5; }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+.title-scene .lamp-glow { animation: lampbreathe 6s ease-in-out infinite; }
+@keyframes lampbreathe { 50% { opacity: .32; } }
+#title .steps { flex-direction: row; align-items: stretch; gap: 8px; max-width: 640px; }
+#title .step {
+  flex: 1; display: flex; align-items: baseline; gap: 8px; white-space: nowrap;
+  border: 1px solid #2e3240; border-radius: 999px; background: #191c22;
+  padding: 8px 16px;
+}
+#title .step b {
+  color: #e8b34b; margin: 0; font-size: 12px; letter-spacing: .18em;
+  font-family: ui-monospace, monospace;
+}
+#title .step span {
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: 13px; color: #c9c2b2;
+}
+#title .step-arrow { align-self: center; color: #5c5546; font-size: 16px; }
+/* resume an unfinished shift — offered only when a run is in progress */
+#title .resume-slot { width: 100%; }
+#title .resume-btn {
+  display: flex; flex-direction: column; gap: 3px; align-items: center;
+  width: min(340px, 86vw);
+  margin: 0 auto 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(232, 179, 75, .5);
+  border-radius: 6px;
+  background: rgba(232, 179, 75, .07);
+  cursor: pointer;
+  animation: resumeGlow 2.6s ease-in-out infinite;
+}
+#title .resume-btn:hover { background: rgba(232, 179, 75, .15); }
+#title .resume-btn .r-line {
+  font-family: ui-monospace, monospace;
+  font-weight: 800; font-size: 13px;
+  letter-spacing: .22em;
+  color: var(--amber, #e8b34b);
+}
+#title .resume-btn .r-sub {
+  font-family: ui-monospace, monospace;
+  font-size: 10px; letter-spacing: .14em;
+  color: #a99f8c;
+}
+@keyframes resumeGlow { 50% { border-color: rgba(232, 179, 75, .85); } }
+@media (prefers-reduced-motion: reduce) {
+  #title .resume-btn { animation: none; }
+}
+#title .title-btns {
+  display: flex; gap: 12px; align-items: center;
+  justify-content: center; flex-wrap: wrap;
+}
+/* ---------- clock in: a time card, punched ---------- */
+#title .stamp-btn {
+  position: relative; display: flex; flex-direction: column; align-items: stretch;
+  gap: 2px; min-width: 246px; padding: 12px 24px 15px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; text-transform: uppercase;
+  color: #24201a; background: #efe3c8;
+  border: 1px solid #b9a883; border-radius: 3px;
+  box-shadow: 0 3px 0 #6b531f, 0 26px 40px -28px rgba(0,0,0,.95);
+  transform: rotate(-1.5deg);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+/* perforated top edge, like every other piece of paper here */
+#title .stamp-btn::before {
+  content: ""; position: absolute; left: 14px; right: 14px; top: 5px; height: 2px;
+  background: repeating-linear-gradient(90deg, #c9b894 0 4px, transparent 4px 9px);
+}
+.pc-top {
+  display: flex; justify-content: space-between; gap: 16px; margin-top: 3px;
+  font-size: 8px; letter-spacing: .18em; color: #8a7a5c;
+}
+.pc-main { font-size: 15px; font-weight: 700; letter-spacing: .2em; color: #1c1f27; }
+.pc-slots { display: flex; gap: 6px; margin-top: 4px; }
+.pc-slots i {
+  display: block; width: 9px; height: 9px; border-radius: 50%;
+  border: 1px dashed #c9b894;
+}
+#title .stamp-btn:hover:not(:disabled) {
+  transform: rotate(-1.5deg) translateY(-2px);
+  box-shadow: 0 5px 0 #6b531f, 0 30px 44px -28px rgba(0,0,0,.95);
+}
+#title .stamp-btn:active:not(:disabled) {
+  transform: rotate(-.8deg) translateY(2px);
+  box-shadow: 0 1px 0 #6b531f;
+}
+/* the punch: a hole appears, then the card drops out of the frame */
+#title .stamp-btn.punching {
+  pointer-events: none;
+  animation: cardpunch .56s cubic-bezier(.5,0,.65,1) forwards;
+}
+#title .stamp-btn.punching .pc-slots i:first-child {
+  animation: punchhole .24s ease .13s both;
+}
+@keyframes punchhole {
+  0% { background: transparent; border-color: #c9b894; transform: scale(1); }
+  55% { transform: scale(1.3); }
+  100% {
+    background: #12141a; border-color: #12141a; transform: scale(1);
+    box-shadow: inset 0 1px 0 rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.1);
+  }
+}
+@keyframes cardpunch {
+  0% { transform: rotate(-1.5deg) translateY(0) scale(1); opacity: 1; }
+  24% { transform: rotate(-.4deg) translateY(4px) scale(.988); opacity: 1; }
+  100% { transform: rotate(-5deg) translateY(34px) scale(.94); opacity: 0; }
+}
+@media (max-width: 560px) {
+  #title .steps { flex-direction: column; }
+  #title .step-arrow { display: none; }
+}
+@media (max-height: 760px) {
+  #title { gap: 10px; }
+  .title-scene { width: min(400px, 86vw); }
+}
+
+/* ---------- HUD ---------- */
+#hud {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 4px 2px 14px;
+  border-bottom: 1px dashed var(--line);
+  font-size: 11px; letter-spacing: .18em; color: var(--dim);
+  transition: color .5s, border-color .5s;
+}
+#dayDots { display: flex; align-items: center; gap: 6px; }
+#dayDots .day-label { color: var(--dim); margin-right: 4px; }
+#dayDots .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  border: 1px solid var(--faint); background: transparent;
+  transition: background .3s, border-color .3s;
+}
+#dayDots .dot.now { border-color: var(--accent); animation: pulse 1.6s ease-in-out infinite; }
+#dayDots .dot.done { background: var(--green); border-color: var(--green); }
+#dayDots .dot.cut { background: var(--red); border-color: var(--red); }
+#dayDots .dot.juror { background: var(--faint); border-color: var(--faint); }
+@keyframes pulse { 50% { box-shadow: 0 0 0 3px rgba(138,90,18,.25); } }
+#hudShift {
+  color: var(--accent); border: 1px solid var(--accent-dim); border-radius: 3px;
+  padding: 3px 8px; letter-spacing: .15em; white-space: nowrap;
+}
+#hudStrikes {
+  position: relative; display: flex; align-items: center; gap: 5px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 0 rgba(5,6,9,0);
+  transition: box-shadow .3s ease, transform .34s cubic-bezier(.2,1.1,.35,1), outline-color .3s ease;
+  outline: 1.5px solid rgba(176,48,40,0); outline-offset: 5px;
+}
+#hudStrikes .strikes-label { color: var(--faint); }
+#hudStrikes .pip {
+  width: 9px; height: 9px; border-radius: 2px;
+  border: 1px solid var(--faint);
+}
+#hudStrikes .pip.on { background: var(--red); border-color: var(--red); }
+#hudStrikes .pip.gain { animation: pipgain .55s cubic-bezier(.2,2,.4,1); }
+@keyframes pipgain {
+  0% { transform: scale(1); }
+  40% { transform: scale(2.1); box-shadow: 0 0 0 4px rgba(176,48,40,.22); }
+  100% { transform: scale(1); }
+}
+/* the third strike: the room closes down to the counter, and it is stamped */
+#hudStrikes.third {
+  z-index: 45; transform: scale(1.5);
+  outline-color: var(--red);
+  box-shadow: 0 0 0 100vmax rgba(5,6,9,.82);
+  transition: box-shadow .26s ease, transform .38s cubic-bezier(.2,1.25,.35,1), outline-color .18s ease;
+}
+#hudStrikes.third::after {
+  content: "CUT"; position: absolute; left: 50%; top: 50%;
+  font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: .2em; color: var(--red); white-space: nowrap;
+  border: 2px solid currentColor; border-radius: 2px; padding: 2px 7px;
+  background: transparent; pointer-events: none;
+  opacity: 0; transform: translate(-50%,-50%) rotate(-7deg);
+  animation: cutstamp .3s cubic-bezier(.42,0,.82,.42) .5s forwards;
+}
+@keyframes cutstamp {
+  0% { opacity: 0; transform: translate(-50%,-50%) rotate(-14deg) scale(3.2); }
+  78% { opacity: 1; transform: translate(-50%,-50%) rotate(-6deg) scale(.92); }
+  100% { opacity: 1; transform: translate(-50%,-50%) rotate(-7deg) scale(1); }
+}
+/* it stays spent for the rest of the run */
+#hudStrikes.spent .strikes-label { color: var(--red); }
+#hudStrikes.spent .pip { border-color: var(--red); }
+@media (max-width: 480px) { #hudStrikes.third { transform: scale(1.26); } }
+#hudScore {
+  margin-left: auto; color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+#hudScore.rolling { color: var(--accent); }
+
+/* ---------- instruction line ---------- */
+#instr {
+  margin: 12px 0 2px; text-align: center;
+  font-size: 13px; letter-spacing: .02em; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--card); padding: 9px 14px;
+  transition: background-color .5s, color .5s, border-color .5s;
+}
+
+/* ---------- ARIA — she has a face now ---------- */
+#ariaSay {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 10px auto 0; max-width: 52ch;
+  border: 1px solid var(--line); border-left: 3px solid var(--accent-dim);
+  border-radius: 4px; background: var(--card); padding: 8px 12px 9px;
+  animation: fadein .35s ease;
+}
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } }
+#ariaSay[data-mood="alarm"] { border-left-color: var(--red); }
+.aria-head { flex-shrink: 0; width: 34px; color: var(--accent); }
+.aria-head svg { display: block; width: 100%; height: auto; }
+#ariaSay[data-mood="alarm"] .aria-head { color: var(--red); }
+.aria-head .eye { transform-box: fill-box; transform-origin: center; animation: eyeblink 5.5s ease-in-out infinite; }
+@keyframes eyeblink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(.1); }
+}
+.aria-head .scan {
+  animation: scanpass 3.2s linear infinite; transform-box: fill-box;
+}
+@keyframes scanpass {
+  0% { transform: translateY(-2px); opacity: 0; }
+  20% { opacity: .9; }
+  100% { transform: translateY(18px); opacity: 0; }
+}
+.aria-head .led { animation: ledpulse 1.8s ease-in-out infinite; }
+@keyframes ledpulse { 50% { opacity: .3; } }
+.aria-body { display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0; }
+.aria-who {
+  font-family: ui-monospace, monospace; font-size: 8.5px; letter-spacing: .22em;
+  color: var(--faint); text-transform: uppercase;
+}
+.aria-who i { font-style: normal; color: var(--accent); }
+#ariaText {
+  font-style: italic; font-size: 13.5px; color: var(--dim); line-height: 1.5;
+}
+#ariaText::after {
+  content: "▍"; color: var(--accent); font-style: normal;
+  animation: blink 1.1s steps(1) infinite;
+}
+
+/* ---------- shared: fact rows ---------- */
+.facts { display: flex; flex-direction: column; gap: 3px; }
+.fact {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 12px; padding: 2px 0;
+}
+.fact .fk {
+  font-size: 9px; letter-spacing: .18em; color: var(--faint);
+  min-width: 44px; text-align: right; flex-shrink: 0;
+}
+.fact .fv { white-space: nowrap; }
+.fact.pass .fv { color: var(--green); font-weight: 600; }
+.fact.fail .fv { color: var(--red); }
+.fact.dim .fv { color: var(--faint); }
+.fact .mk { font-size: 10px; margin-left: auto; padding-left: 8px; text-align: right; }
+.fact .mk.pass { color: var(--green); font-weight: 700; font-size: 10px; }
+.fact .mk.fail { color: var(--red); }
+.fact .mk.dim { color: var(--faint); font-style: italic; }
+
+/* ---------- DAY phase ---------- */
+#dayPhase { display: flex; flex-direction: column; gap: 14px; padding-top: 4px; }
+/* the riddle is a memo torn off a pad, sitting a hair crooked */
+#riddleWrap {
+  position: relative; text-align: center;
+  padding: 18px 18px 16px; margin-top: 6px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 2px;
+  transform: rotate(.35deg);
+  box-shadow: 0 1px 0 rgba(0,0,0,.05), 0 16px 34px -22px rgba(0,0,0,.55);
+  transition: background-color .5s, border-color .5s;
+}
+#riddleWrap::before {
+  content: ""; position: absolute; left: 16px; right: 16px; top: -6px; height: 7px;
+  background: repeating-linear-gradient(90deg, var(--line) 0 5px, transparent 5px 11px);
+  opacity: .9;
+}
+#riddleWrap::after {
+  content: ""; position: absolute; right: 12px; bottom: 10px; z-index: 0;
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 1px dashed var(--line); opacity: .35;
+}
+#riddleWrap > * { position: relative; z-index: 1; }
+.riddle-kicker {
+  font-size: 10px; letter-spacing: .3em;
+  color: var(--accent-dim); margin-bottom: 8px;
+}
+.riddle-text {
+  font-size: clamp(19px, 4vw, 26px); line-height: 1.3; font-weight: 500;
+  max-width: 30ch; margin: 0 auto;
+}
+.sec-head {
+  font-size: 10px; letter-spacing: .25em; text-transform: uppercase;
+  color: var(--faint); margin-bottom: 8px;
+  border-bottom: 1px dashed var(--line); padding-bottom: 5px;
+}
+
+/* the docket — precedent rulings as an aligned table */
+#docketWrap {
+  overflow-x: auto; position: relative;
+  background: var(--card); border: 1px solid var(--line); border-radius: 2px;
+  padding: 12px 14px 4px; transform: rotate(-.3deg);
+  box-shadow: 0 1px 0 rgba(0,0,0,.05), 0 18px 36px -24px rgba(0,0,0,.55);
+  transition: background-color .5s, border-color .5s;
+}
+/* punched, filed */
+#docketWrap::before {
+  content: ""; position: absolute; left: 4px; top: 8px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--paper); box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
+}
+#docket {
+  width: 100%; border-collapse: collapse;
+  font-size: 11.5px; color: var(--ink);
+  transition: color .5s;
+}
+#docket th {
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--faint); font-weight: 400; text-align: left;
+  border-bottom: 1px solid var(--line); padding: 4px 6px;
+}
+#docket td {
+  border-bottom: 1px dashed var(--line); padding: 7px 6px;
+  white-space: nowrap;
+}
+#docket td.c-file .glyph { font-size: 15px; margin-right: 6px; }
+#docket td.c-file .name { font-family: "Iowan Old Style", Palatino, Georgia, serif; }
+#docket td.c-stamp {
+  font-size: 10px; letter-spacing: .14em; font-weight: 700;
+}
+/* every stamp is put down by hand, slightly off-square */
+#docket td.c-stamp .ink {
+  display: inline-block; padding: 1px 4px;
+  border: 1.5px solid currentColor; border-radius: 2px;
+  transform: rotate(-2.6deg);
+  opacity: .92;
+}
+#docket tr:nth-child(even) td.c-stamp .ink { transform: rotate(2.2deg); }
+#docket tr:nth-child(3n) td.c-stamp .ink { transform: rotate(-1.2deg) translateY(1px); }
+#docket td.c-stamp.human { color: var(--green); border-bottom: 1px dashed var(--line); }
+#docket td.c-stamp.sus { color: var(--red); }
+#docket td.c-stamp {
+  border-left: 1px dashed var(--line); text-align: center;
+}
+#docket td.c-stamp.human { box-shadow: inset 0 0 0 999px rgba(46,107,52,.07); }
+body[data-shift="night"] #docket td.c-stamp.human { box-shadow: inset 0 0 0 999px rgba(127,176,105,.08); }
+#docket td.c-stamp.sus { box-shadow: inset 0 0 0 999px rgba(176,48,40,.07); }
+body[data-shift="night"] #docket td.c-stamp.sus { box-shadow: inset 0 0 0 999px rgba(217,106,90,.08); }
+
+/* evidence hand — four cards, labeled fact rows */
+#hand {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+.evidence {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px 4px 12px 4px;
+  padding: 12px 12px 12px;
+  cursor: pointer; min-height: 44px;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform .12s ease, border-color .12s ease, background .12s ease, box-shadow .12s ease;
+  user-select: none;
+  animation: dealin .5s cubic-bezier(.16,1.02,.3,1) backwards;
+}
+/* dealt off the deck — in from below, face up, still turning */
+@keyframes dealin {
+  from {
+    opacity: 0;
+    transform: translate(-26px, 74px) rotate(-13deg) scale(.9);
+    box-shadow: 0 22px 30px -18px rgba(0,0,0,.6);
+  }
+  62% { transform: rotate(calc(var(--tilt, 0deg) * 1.7)) translateY(-4px) scale(1.012); }
+}
+/* a hand of physical cards, not a grid of tiles */
+#hand .evidence:nth-child(1) { --tilt: -1.4deg; animation-delay: .04s; }
+#hand .evidence:nth-child(2) { --tilt: .9deg; animation-delay: .13s; }
+#hand .evidence:nth-child(3) { --tilt: -.7deg; animation-delay: .22s; }
+#hand .evidence:nth-child(4) { --tilt: 1.5deg; animation-delay: .31s; }
+/* the one that got filed: a clone that outlives the phase change */
+.evidence.flying {
+  pointer-events: none; animation: none;
+  transition: none; transform-origin: 50% 70%;
+  box-shadow: 0 24px 40px -20px rgba(0,0,0,.65);
+  border-color: var(--accent);
+}
+/* dog-eared corner */
+.evidence::after {
+  content: ""; position: absolute; right: 0; bottom: 0;
+  width: 15px; height: 15px; border-bottom-right-radius: 4px;
+  background: linear-gradient(135deg, transparent 48%, var(--line) 48%, var(--line) 54%, transparent 54%);
+  opacity: .75; pointer-events: none;
+}
+.evidence:hover { transform: rotate(var(--tilt, 0deg)) translateY(-3px); border-color: var(--accent-dim); }
+.evidence.selected {
+  border-color: var(--accent);
+  transform: rotate(0deg) translateY(-3px);
+  box-shadow: 0 6px 18px rgba(138,90,18,.18);
+}
+.evidence.tag-match-hand {
+  border-color: var(--accent) !important;
+  background: rgba(232, 179, 75, 0.12) !important;
+  transform: rotate(var(--tilt, 0deg)) translateY(-4px);
+  box-shadow: 0 0 16px rgba(232, 179, 75, 0.45);
+}
+.evidence .e-head { display: flex; justify-content: space-between; align-items: center; }
+.evidence .e-head .glyph {
+  font-size: 20px; line-height: 1;
+  display: grid; place-items: center; width: 34px; height: 34px;
+  border: 1px dashed var(--line); border-radius: 50%;
+}
+.evidence.selected .e-head .glyph { border-color: var(--accent-dim); border-style: solid; }
+.evidence .e-head .key {
+  font-family: ui-monospace, monospace; font-size: 10px; color: var(--faint);
+  border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px;
+}
+.evidence .name {
+  font-size: 13px; line-height: 1.3; margin: 6px 0 8px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+#fileBtn {
+  position: sticky; bottom: 0; z-index: 10;
+  align-self: stretch; width: auto; margin: 4px -16px 0;
+  padding: 14px 26px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-radius: 0; border-top: 1px solid var(--line);
+  background: var(--paper); color: var(--ink);
+  box-shadow: 0 -6px 14px var(--paper);
+  font-family: ui-monospace, "SF Mono", Menlo, "Courier New", monospace;
+  font-size: 13px; letter-spacing: .08em;
+}
+#fileBtn:disabled { opacity: 1; color: var(--faint); }
+#fileBtn:hover:not(:disabled), #fileBtn:active:not(:disabled) {
+  transform: none; box-shadow: 0 -6px 14px var(--paper);
+}
+
+/* ---------- VERDICT ---------- */
+#verdictPhase {
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+  padding-top: 10px; text-align: center;
+}
+#pickMini {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center;
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 8px 16px; background: var(--card);
+}
+#pickMini .glyph { font-size: 22px; }
+#pickMini .name { font-size: 13px; }
+#pickMini .arg { font-size: 11.5px; color: var(--dim); font-style: italic; }
+#ruleLine {
+  font-family: ui-monospace, monospace; font-size: 13px; letter-spacing: .06em;
+  color: var(--accent); border: 1px dashed var(--accent-dim); border-radius: 6px;
+  padding: 8px 18px; background: rgba(138,90,18,.06);
+  animation: chipin .4s cubic-bezier(.2,1.4,.4,1) backwards;
+}
+@keyframes chipin { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+#factRows { width: 100%; max-width: 420px; text-align: left; }
+#factRows .fact { font-size: 13px; padding: 4px 0; }
+#factRows .fact .mk { font-size: 11px; }
+
+/* crowd tally bar — cosmetic, always consistent with the stamp */
+#crowdBox { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 8px; }
+#tallyBar {
+  height: 16px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); overflow: hidden;
+}
+#tallyFill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--green), var(--green));
+  border-right: 2px solid var(--ink);
+}
+#crowdPct { font-size: 12px; letter-spacing: .15em; color: var(--dim); }
+#crowdPct b.h { color: var(--green); } #crowdPct b.s { color: var(--red); }
+
+/* the ruling slip: a blank form on the desk, waiting to be stamped */
+#stampBox {
+  position: relative; min-height: 96px; width: 100%; max-width: 420px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 28px 18px 20px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 3px;
+  transform: rotate(-.4deg);
+  box-shadow: 0 18px 38px -28px rgba(0,0,0,.6);
+  transition: background-color .5s, border-color .5s;
+}
+#stampBox::before {
+  content: ""; position: absolute; left: 14px; right: 14px; bottom: 12px;
+  border-bottom: 1px solid var(--line); opacity: .5;
+}
+/* before it is stamped it is just a blank form */
+#stampBox:empty::after {
+  content: "AWAITING VERDICT";
+  font-family: ui-monospace, monospace; font-size: 9.5px;
+  letter-spacing: .26em; color: var(--faint); opacity: .7;
+}
+#stampBox .slip-no {
+  position: absolute; left: 12px; top: 9px;
+  font-family: ui-monospace, monospace; font-size: 9px; letter-spacing: .2em;
+  color: var(--faint);
+}
+#ledgerLine {
+  font-family: ui-monospace, monospace; font-size: 11.5px; letter-spacing: .06em;
+  color: var(--dim); max-width: 46ch; text-align: center; min-height: 1em;
+}
+/* the room washes past the verdict — never over the fact rows' marks */
+#verdictPhase.flash-pass { animation: vflash-p .55s ease; }
+#verdictPhase.flash-fail { animation: vflash-f .55s ease; }
+@keyframes vflash-p { 0% { background-color: rgba(46,107,52,.30); } }
+@keyframes vflash-f { 0% { background-color: rgba(176,48,40,.34); } }
+.stamp {
+  position: relative;
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: clamp(28px, 7vw, 44px); font-weight: 700; letter-spacing: .12em;
+  padding: 6px 26px; border: 4px solid currentColor; border-radius: 6px;
+  transform: rotate(-6deg);
+  animation: stamp .45s cubic-bezier(.2,2.2,.4,1);
+  text-transform: uppercase;
+}
+.stamp.survived { color: var(--green); }
+.stamp.eliminated { color: var(--red); }
+@keyframes stamp {
+  0% { opacity: 0; transform: rotate(-6deg) scale(2.4); }
+  100% { opacity: 1; transform: rotate(-6deg) scale(1); }
+}
+/* the spatter the stamp leaves on the desk */
+.stamp::before {
+  content: ""; position: absolute; inset: -22% -14%; pointer-events: none;
+  opacity: .3; z-index: -1;
+  background:
+    radial-gradient(circle at 26% 52%, currentColor 0 5%, transparent 6%),
+    radial-gradient(circle at 74% 40%, currentColor 0 3.2%, transparent 4.2%),
+    radial-gradient(circle at 62% 78%, currentColor 0 2.4%, transparent 3.4%),
+    radial-gradient(circle at 14% 74%, currentColor 0 2%, transparent 3%),
+    radial-gradient(circle at 86% 68%, currentColor 0 1.6%, transparent 2.6%);
+  animation: spatter .5s ease-out backwards;
+}
+@keyframes spatter { from { opacity: 0; transform: scale(.5); } }
+
+/* ---------- NIGHT audit ---------- */
+#auditPhase { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; }
+#ruleChips {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  border-bottom: 1px dashed var(--line); padding-bottom: 10px;
+}
+#ruleChips .rc-label { font-size: 10px; letter-spacing: .15em; color: var(--faint); margin-right: 4px; }
+#ruleChips .chip {
+  font-size: 11px; letter-spacing: .05em; color: var(--accent);
+  border: 1px solid var(--accent-dim); border-radius: 999px; padding: 4px 12px;
+}
+#caseCard { min-height: 300px; }
+.case-num {
+  font-size: 10px; letter-spacing: .3em; color: var(--faint);
+  margin-bottom: 8px; text-align: center;
+}
+.case-card {
+  position: relative;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 12px 4px 12px 4px;
+  padding: 15px 20px 12px; max-width: 540px; margin: 0 auto;
+  text-align: left;
+  rotate: var(--tilt, 0deg); /* human filings land off-square; the machine's doesn't */
+}
+/* the photo clipped to the filing: a painted print of the claim with the
+   filer's ID shot pinned over its corner. Every filer gets the same
+   treatment — the paper still carries the facts, the photo only the scene.
+   Missing files leave the paper exactly as it was; the glyph still speaks. */
+.case-photo { position: relative; margin: 0 0 8px; }
+.case-photo img.missing { display: none; }
+.case-photo:not(:has(img:not(.missing))) { display: none; }
+.case-photo .case-vignette {
+  display: block; width: 100%; height: 102px;
+  object-fit: cover; object-position: 50% 42%;
+  border: 5px solid #e9e2cb; outline: 1px solid rgba(0, 0, 0, .35);
+  border-radius: 2px; box-shadow: 0 3px 10px rgba(0, 0, 0, .5);
+  transform: rotate(-.8deg); background: #0d1117;
+}
+.case-photo .case-id {
+  display: block; position: absolute; top: -14px; right: 10px;
+  width: 52px; height: 64px;
+  object-fit: cover; object-position: 50% 18%;
+  border: 3px solid #e9e2cb; outline: 1px solid rgba(0, 0, 0, .4);
+  border-radius: 2px; box-shadow: 0 3px 8px rgba(0, 0, 0, .55);
+  transform: rotate(2deg); background: #0d1117;
+}
+/* on a phone the postmark matters more than the picture — keep the
+   facts and the stub above the fold */
+@media (max-width: 480px) {
+  .case-photo .case-vignette { height: 84px; border-width: 4px; }
+  .case-photo .case-id { width: 42px; height: 52px; top: -10px; }
+}
+/* the two-up postmark needs room — narrow desks read it as one column */
+@media (max-width: 620px) {
+  .case-stub { grid-template-columns: 1fr; }
+}
+/* a fresh case file, dropped on the desk from the pile */
+.case-card.fresh { animation: casedrop .44s cubic-bezier(.18,1.05,.32,1) backwards; }
+@keyframes casedrop {
+  from {
+    opacity: 0;
+    transform: translateY(-26px) rotate(-1.8deg) scale(.98);
+    box-shadow: 0 30px 34px -26px rgba(0,0,0,.7);
+  }
+  70% { transform: rotate(.4deg) translateY(1px); }
+}
+/* a filing that arrives too cleanly — faster, straighter, no settle
+   (always on the machine's card, sometimes on humans) */
+.case-card.clean-drop.fresh { animation: cleandrop .3s cubic-bezier(.25,.9,.3,1) backwards; }
+@keyframes cleandrop {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(.995);
+    box-shadow: 0 30px 34px -26px rgba(0,0,0,.7);
+  }
+}
+.case-card .e-head .glyph { font-size: 30px; }
+.case-card .name { font-size: 15px; margin: 6px 0 4px; }
+.case-card .arg { font-size: 12px; color: var(--dim); font-style: italic; margin-bottom: 10px; }
+/* the clerk's marginal note — texture, not testimony */
+.case-note {
+  font-family: ui-monospace, monospace; font-size: 9.5px;
+  letter-spacing: .05em; color: var(--faint);
+  margin: -4px 0 8px; font-style: italic; opacity: .8;
+}
+.case-card.stamped-human { border-color: var(--green); --inkc: var(--green); }
+.case-card.stamped-sus { border-color: var(--red); --inkc: var(--red); }
+/* the card takes the hit: it gives a couple of pixels, then settles */
+.case-card.impact { animation: caseimpact .34s cubic-bezier(.3,1.6,.4,1); }
+@keyframes caseimpact {
+  0% { transform: none; }
+  22% { transform: translateY(3px) scale(.994); }
+  55% { transform: translateY(-1px); }
+  100% { transform: none; }
+}
+/* ink left on the paper where the stamp bit */
+.case-card::after {
+  content: ""; position: absolute; top: 0; right: 0;
+  width: 160px; height: 96px; pointer-events: none; z-index: 2;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 76% 32%, var(--inkc, var(--ink)) 0 6%, transparent 7%),
+    radial-gradient(circle at 46% 64%, var(--inkc, var(--ink)) 0 2.8%, transparent 3.8%),
+    radial-gradient(circle at 64% 80%, var(--inkc, var(--ink)) 0 1.8%, transparent 2.8%),
+    radial-gradient(circle at 93% 62%, var(--inkc, var(--ink)) 0 2.2%, transparent 3.2%),
+    radial-gradient(circle at 24% 26%, var(--inkc, var(--ink)) 0 1.6%, transparent 2.6%),
+    radial-gradient(circle at 88% 14%, var(--inkc, var(--ink)) 0 1.2%, transparent 2.2%);
+}
+.case-card.stamped-human::after,
+.case-card.stamped-sus::after { animation: inksplat .55s ease-out .25s forwards; }
+@keyframes inksplat { to { opacity: .38; } }
+/* the stamp settles with a faint bleed into the paper */
+.case-stamp.landed { animation: inksettle .3s ease; }
+@keyframes inksettle { 45% { opacity: .82; } }
+.case-stamp {
+  position: absolute; top: 14px; right: 14px; z-index: 3;
+  font-family: ui-monospace, monospace; font-size: 13px; font-weight: 700;
+  letter-spacing: .18em; padding: 3px 10px;
+  border: 2.5px solid currentColor; border-radius: 4px; transform: rotate(6deg);
+}
+.case-stamp.human { color: var(--green); }
+.case-stamp.sus { color: var(--red); }
+.case-verdict {
+  margin: 4px 0 0; font-size: 18px; font-weight: 700; letter-spacing: .22em;
+}
+.case-verdict.ok { color: var(--green); }
+.case-verdict.bad { color: var(--red); }
+/* the pre-stamped filing: not a right/wrong the player earned — the
+ * clerk's strip, read in his ink */
+.case-verdict.prev { color: var(--dim); }
+.case-reason {
+  font-family: ui-monospace, monospace; font-size: 11.5px; letter-spacing: .05em;
+  color: var(--red); margin-top: 4px;
+}
+.case-cont {
+  font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .12em;
+  color: var(--faint); margin-top: 12px; text-align: center; font-style: italic;
+}
+#caseBtns { display: flex; gap: 12px; justify-content: center; }
+#caseBtns .vb {
+  font-family: ui-monospace, monospace; font-size: 14px; font-weight: 700;
+  letter-spacing: .15em; min-width: 150px; min-height: 52px;
+  border: 2px solid currentColor; background: transparent; box-shadow: none;
+}
+#caseBtns .vb kbd { font-size: 11px; opacity: .7; font-family: inherit; }
+#caseBtns .vb.s { color: var(--red); }
+#caseBtns .vb.h { color: var(--green); }
+/* the verb breathes — a low lamp-glow under the two stamps, no words */
+#caseBtns .vb:not(:disabled), .shift-lever-btn:not(:disabled), #signBtn:not(:disabled) { animation: vbbreathe 3.6s ease-in-out infinite; }
+@keyframes vbbreathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 179, 75, 0); }
+  50% { box-shadow: 0 0 16px 1px rgba(232, 179, 75, .13); }
+}
+#caseBtns .vb:hover:not(:disabled) { transform: translateY(-1px); box-shadow: none; }
+/* the button you pressed goes down like a stamp handle */
+#caseBtns .vb.press { animation: vbpress .34s cubic-bezier(.3,1.5,.4,1); }
+@keyframes vbpress {
+  0% { transform: none; }
+  26% { transform: translateY(5px) scale(.965); box-shadow: inset 0 3px 6px rgba(0,0,0,.45); }
+  100% { transform: none; }
+}
+#caseBtns .vb:disabled { opacity: .28; transition: opacity .25s ease .18s; }
+#caseBtns .vb.s:hover:not(:disabled) { background: rgba(217,106,90,.12); }
+#caseBtns .vb.h:hover:not(:disabled) { background: rgba(127,176,105,.12); }
+
+#caseBtns .shift-paddle-left, #caseBtns .shift-paddle-right {
+  display: inline-flex; align-items: center; justify-content: center;
+}
+#caseBtns .shift-paddle-left .shift-arrow {
+  margin-right: 8px; font-size: 16px; display: inline-block;
+  transition: transform .15s ease;
+}
+#caseBtns .shift-paddle-right .shift-arrow {
+  margin-left: 8px; font-size: 16px; display: inline-block;
+  transition: transform .15s ease;
+}
+#caseBtns .shift-paddle-left:hover:not(:disabled) .shift-arrow {
+  transform: translateX(-4px);
+}
+#caseBtns .shift-paddle-right:hover:not(:disabled) .shift-arrow {
+  transform: translateX(4px);
+}
+
+.case-card.shifting.shift-left {
+  animation: shiftLeft .24s cubic-bezier(.2, 0, .2, 1) forwards;
+}
+.case-card.shifting.shift-right {
+  animation: shiftRight .24s cubic-bezier(.2, 0, .2, 1) forwards;
+}
+@keyframes shiftLeft {
+  0% { transform: none; opacity: 1; }
+  100% { transform: translateX(-140%) rotate(-10deg); opacity: 0; }
+}
+@keyframes shiftRight {
+  0% { transform: none; opacity: 1; }
+  100% { transform: translateX(140%) rotate(10deg); opacity: 0; }
+}
+
+.shift-lever-btn {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  padding: 14px 26px;
+  background: #e8b34b;
+  color: #121317;
+  border: 2px solid #ffd57a;
+  border-radius: 4px;
+  box-shadow: 0 6px 20px rgba(232, 179, 75, 0.4);
+  cursor: pointer;
+  transition: all .16s ease;
+}
+.shift-lever-btn:hover {
+  background: #ffd57a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 26px rgba(232, 179, 75, 0.6);
+}
+.shift-lever-btn .lever-icon {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 18px;
+  vertical-align: middle;
+}
+
+/* Attribute Shift Focus Rail */
+.attr-shift-rail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 10px;
+  padding: 6px 10px;
+  background: rgba(20, 24, 32, 0.7);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  flex-wrap: wrap;
+}
+.attr-shift-rail .rail-label {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--amber, #e8b34b);
+  letter-spacing: .12em;
+  margin-right: 4px;
+}
+.attr-shift-rail .rail-btn {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  transition: all .12s ease;
+}
+.attr-shift-rail .rail-btn:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+.attr-shift-rail .rail-btn.active {
+  background: var(--amber, #e8b34b);
+  color: #121317;
+  font-weight: 800;
+  border-color: #ffd57a;
+  box-shadow: 0 0 10px rgba(232, 179, 75, 0.35);
+}
+.attr-shift-rail .rail-hint {
+  margin-left: auto;
+  font-family: ui-monospace, monospace;
+  font-size: 9.5px;
+  color: var(--faint);
+}
+.attr-shift-rail .rail-hint kbd {
+  font-size: 9px;
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+/* Docket Column Focusing */
+#docket.focus-place th:not(.c-file):not([data-col="place"]),
+#docket.focus-place td.c-fact:not([data-key="place"]),
+#docket.focus-time th:not(.c-file):not([data-col="time"]),
+#docket.focus-time td.c-fact:not([data-key="time"]),
+#docket.focus-people th:not(.c-file):not([data-col="people"]),
+#docket.focus-people td.c-fact:not([data-key="people"]),
+#docket.focus-setting th:not(.c-file):not([data-col="setting"]),
+#docket.focus-setting td.c-fact:not([data-key="setting"]) {
+  opacity: 0.28;
+  transition: opacity .15s ease;
+}
+
+#docket.focus-place td.c-fact[data-key="place"],
+#docket.focus-time td.c-fact[data-key="time"],
+#docket.focus-people td.c-fact[data-key="people"],
+#docket.focus-setting td.c-fact[data-key="setting"] {
+  background: rgba(232, 179, 75, 0.08);
+  font-weight: 700;
+  border-radius: 3px;
+}
+
+/* Hand cards attribute focusing */
+.evidence.focus-place .fact[data-key="place"],
+.evidence.focus-time .fact[data-key="time"],
+.evidence.focus-people .fact[data-key="people"],
+.evidence.focus-setting .fact[data-key="setting"] {
+  color: var(--amber, #e8b34b);
+  font-weight: 700;
+  background: rgba(232, 179, 75, 0.1);
+  border-radius: 2px;
+  padding: 1px 4px;
+}
+
+/* Night desk bar: pinned rule chips + the wire monitor */
+#deskBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#deskBar #ruleChips { flex: 1; }
+
+/* the night's paperwork, made visible: a face-down pile of what's still
+   coming, an arrow, and the filed stack of what you've already stamped.
+   Pick-colored slips keep a record of the shift; the catch gleams gold.
+   Decorative — CASE n/m already carries the count. */
+#caseTray {
+  display: flex; align-items: center; gap: 9px;
+  font-family: ui-monospace, monospace; font-size: 8.5px;
+  letter-spacing: .2em; color: var(--faint);
+  min-height: 30px; padding: 0 2px;
+}
+#caseTray .tray-label { flex-shrink: 0; }
+.tray-pile, .tray-filed { display: inline-flex; align-items: center; }
+.tray-card, .tray-slip {
+  width: 21px; height: 29px; flex-shrink: 0;
+  background: linear-gradient(165deg, #d9cdb4, #c2b28e);
+  border: 1px solid rgba(0, 0, 0, .45); border-radius: 2px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .45);
+  transform: rotate(var(--r, 0deg));
+  position: relative;
+}
+.tray-pile .tray-card + .tray-card, .tray-filed .tray-slip + .tray-slip { margin-left: -10px; }
+.tray-card::after {
+  content: ""; position: absolute; left: 4px; right: 4px; top: 6px; bottom: 6px;
+  background: repeating-linear-gradient(180deg, transparent 0 3px, rgba(58, 46, 22, .28) 3px 4px);
+}
+.tray-slip {
+  background: #e9e2cb;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0;
+}
+.tray-slip::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--slipc, #8a8f99);
+}
+.tray-slip.h { --slipc: var(--green); color: var(--green); }
+.tray-slip.s { --slipc: var(--red); color: var(--red); }
+.tray-slip.bad { opacity: .5; }
+.tray-slip.bounty {
+  --slipc: #ffd57a; color: #8a6a1f;
+  box-shadow: 0 0 9px rgba(255, 213, 122, .4), 0 2px 5px rgba(0, 0, 0, .45);
+}
+.tray-slip.deal { animation: traydeal .42s cubic-bezier(.2, .9, .3, 1.1) backwards; }
+@keyframes traydeal {
+  from { opacity: 0; transform: translateX(-30px) rotate(-16deg); }
+}
+
+/* the wire monitor — a quiet desk prop, not a third stamp */
+.finale-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.finale-bar .sec-head { margin-bottom: 0; }
+/* The packet stub — a postmark strip printed at the foot of every filing.
+   Always on the card; the same muted columns for every filer. */
+/* the postmark is evidence — it gets a legible voice, not a whisper */
+.case-stub {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line, #3b4255);
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .05em;
+  color: #a3b0c4;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 18px;
+}
+.case-stub .tel-row .tel-val { font-weight: 600; }
+.case-stub .tel-row {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  line-height: 1.6;
+  padding: 0 4px;
+  margin: 0 -4px;
+  border-radius: 3px;
+}
+/* a human postmark prints a line at a time, like a receipt */
+.case-card.fresh:not(.clean-drop) .tel-row {
+  opacity: 0;
+  animation: stubprint .2s ease-out forwards;
+  animation-delay: calc(.3s + var(--i) * .13s);
+}
+@keyframes stubprint { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; } }
+.case-stub .tel-val.hit, .rcc-b.tel-val.hit {
+  color: var(--amber, #e8b34b);
+  font-weight: 800;
+}
+/* hovering an accusation points at the row it names — stub or compare */
+[data-tel].peek { background: rgba(232,179,75,.07); }
+[data-tel].peek .tel-val { color: var(--amber, #e8b34b); }
+/* a correct flag: red grease pencil circles the field that held */
+/* the catch: warm light off the desk edge + the bounty floats up */
+#frame.catchflash { animation: catchflash .8s ease-out; }
+@keyframes catchflash {
+  0% { box-shadow: inset 0 0 0 0 rgba(232, 179, 75, .22); }
+  100% { box-shadow: inset 0 0 120px 30px rgba(232, 179, 75, 0); }
+}
+.catch-pop {
+  position: absolute; top: 34%; left: 50%; z-index: 5;
+  transform: translateX(-50%);
+  font-family: ui-monospace, monospace; font-size: 15px; font-weight: 700;
+  letter-spacing: .2em; color: var(--amber, #e8b34b);
+  text-shadow: 0 0 14px rgba(232, 179, 75, .5);
+  animation: catchpop 1.3s cubic-bezier(.2, .8, .3, 1) forwards;
+  pointer-events: none; white-space: nowrap;
+}
+@keyframes catchpop {
+  0% { opacity: 0; transform: translate(-50%, 10px) scale(.8); }
+  18% { opacity: 1; transform: translate(-50%, 0) scale(1.06); }
+  30% { transform: translate(-50%, -2px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -46px) scale(.96); }
+}
+[data-tel] .ring {
+  position: absolute; inset: -6px -10px;
+  width: calc(100% + 20px); height: calc(100% + 12px);
+  pointer-events: none; overflow: visible;
+}
+[data-tel] .ring ellipse {
+  fill: none; stroke: #d9483b; stroke-width: 3;
+  stroke-dasharray: 100; stroke-dashoffset: 100; stroke-linecap: round;
+  opacity: .9; transform: rotate(-1.6deg); transform-origin: 50% 50%;
+  animation: ringdraw .5s ease-out .05s forwards;
+}
+@keyframes ringdraw { to { stroke-dashoffset: 0; } }
+/* a hunch: the field you named gets struck through in pencil */
+[data-tel].struck .tel-val { position: relative; }
+[data-tel].struck .tel-val::after {
+  content: ""; position: absolute; left: -8%; right: -8%; top: 52%;
+  border-top: 2px solid rgba(217,72,59,.85);
+  transform-origin: left center;
+  animation: strikewipe .16s ease-out both;
+}
+@keyframes strikewipe {
+  from { transform: rotate(-3deg) scaleX(0); }
+  to   { transform: rotate(-3deg) scaleX(1); }
+}
+/* when the desk asks what flagged it, everything but the stub steps back */
+.case-card.flagging .e-head, .case-card.flagging .name,
+.case-card.flagging .arg, .case-card.flagging .case-note,
+.case-card.flagging .facts {
+  opacity: .3;
+  transition: opacity .3s ease;
+}
+.case-card.flagging .flag-row {
+  border-color: rgba(232,179,75,.5);
+  animation: flagpulse 1.7s ease-in-out infinite;
+}
+@keyframes flagpulse { 50% { border-color: rgba(232,179,75,.18); } }
+
+/* cold open: the two receipts aligned row by row — teach by contrast.
+   Styled as a magnified postmark strip; it aligns, it never accuses. */
+.rc-compare {
+  margin: 0 0 14px;
+  padding: 9px 12px 7px;
+  border: 1px dashed var(--line, #3b4255);
+  border-radius: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .05em;
+  color: #a3b0c4;
+}
+/* the receipt prints a row at a time, like the stub it replaces */
+.rc-compare > * { animation: rcfade .3s ease backwards; }
+.rc-compare > *:nth-child(2) { animation-delay: .1s; }
+.rc-compare > *:nth-child(3) { animation-delay: .18s; }
+.rc-compare > *:nth-child(4) { animation-delay: .26s; }
+.rc-compare > *:nth-child(5) { animation-delay: .34s; }
+.rc-compare > *:nth-child(6) { animation-delay: .42s; }
+.rc-compare > *:nth-child(7) { animation-delay: .5s; }
+@keyframes rcfade { from { opacity: 0; transform: translateY(-3px); } }
+/* a catch completes the contrast: the ring marks the machine's field and
+   the baseline cell beside it lifts — "this is what human sounded like" */
+[data-tel].ringed .rcc-a { color: #d7dee9; }
+[data-tel].ringed .rcc-k { color: #a8b6ca; }
+.rcc-row, .rcc-head {
+  display: grid;
+  grid-template-columns: 4.4em 1fr 1fr;
+  gap: 0 8px;
+  line-height: 1.55;
+}
+.rcc-row { position: relative; }
+.rcc-head {
+  color: #a3b0c4;
+  border-bottom: 1px dashed var(--line, #3b4255);
+  padding-bottom: 3px;
+  margin-bottom: 3px;
+}
+.rcc-b.tel-val { font-weight: 600; }
+.rcc-k { color: #5c6a80; }
+.rcc-a, .rcc-b { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rcc-cap {
+  margin: 7px 0 0;
+  text-align: center;
+  color: #5c6a80;
+  font-style: italic;
+}
+@media (max-width: 420px) {
+  .rc-compare { padding: 8px 9px 6px; }
+  .rcc-row, .rcc-head { grid-template-columns: 3.9em 1fr 1fr; gap: 0 6px; }
+}
+
+/* grounds — the desk asks which packet field flagged a clean-paper SUS */
+.flag-row {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line, #3b4255);
+  border-radius: 4px;
+  background: rgba(10, 12, 16, 0.35);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.flag-row .flag-q {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--faint, #899bb5);
+  letter-spacing: .08em;
+}
+.flag-f {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  padding: 3px 9px;
+  border: 1px solid var(--line, #3b4255);
+  border-radius: 3px;
+  background: transparent;
+  color: #a4b3ca;
+  cursor: pointer;
+}
+.flag-f:hover { color: var(--amber, #e8b34b); border-color: var(--amber, #e8b34b); }
+.flag-f.none { opacity: .55; font-style: italic; }
+/* the desk asks — the grounds arrive one button at a time */
+.flag-row .flag-f { animation: flagin .3s cubic-bezier(.2, 1.4, .4, 1) backwards; animation-delay: calc(var(--i, 0) * 45ms + 70ms); }
+@keyframes flagin { from { opacity: 0; transform: translateY(4px); } }
+
+#finaleTable .c-pkt {
+  font-family: ui-monospace, monospace;
+  font-size: 9.5px;
+  color: var(--faint, #899bb5);
+  white-space: nowrap;
+}
+#auditSummary { text-align: center; padding: 20px 0 4px; }
+/* the ledger reads itself in, line by line */
+#auditSummary > * { animation: sumrise .45s cubic-bezier(.2, .9, .3, 1) backwards; }
+#auditSummary > *:nth-child(2) { animation-delay: .12s; }
+#auditSummary > *:nth-child(3) { animation-delay: .22s; }
+#auditSummary > *:nth-child(4) { animation-delay: .32s; }
+@keyframes sumrise { from { opacity: 0; transform: translateY(8px); } }
+#auditSummary .sum-line { font-size: 20px; letter-spacing: .12em; color: var(--ink); }
+#auditSummary .sum-effect { font-size: 12px; color: var(--accent); margin-top: 8px; letter-spacing: .08em; }
+#auditSummary .sum-wire { font-size: 10.5px; font-family: ui-monospace, monospace; color: var(--faint, #899bb5); margin-top: 6px; letter-spacing: .08em; }
+#auditSummary .sum-vale { font-size: 11px; font-family: ui-monospace, monospace; margin-top: 10px; letter-spacing: .06em; }
+#auditSummary .sum-vale.ok { color: var(--amber, #e8b34b); }
+#auditSummary .sum-vale.warn { color: var(--red, #d96a5a); }
+#auditSummary .sum-vale.quiet { color: var(--faint, #899bb5); font-style: italic; opacity: .8; }
+/* a flawless night earns the seal — it drops on like a stamp */
+#auditSummary.flawless .sum-line { color: var(--amber, #e8b34b); }
+#auditSummary.flawless .sum-effect { color: var(--amber, #e8b34b); }
+#auditSummary { position: relative; }
+.night-seal {
+  position: absolute; right: 6%; top: 8px;
+  font-family: ui-monospace, monospace; font-size: 13px; font-weight: 700;
+  letter-spacing: .22em; color: var(--amber, #e8b34b);
+  border: 2.5px solid var(--amber, #e8b34b); border-radius: 5px;
+  padding: 5px 12px; transform: rotate(-9deg);
+  opacity: 0; animation: sealdrop .5s cubic-bezier(.3, 1.5, .4, 1) .55s forwards;
+  pointer-events: none; white-space: nowrap;
+}
+@keyframes sealdrop {
+  from { opacity: 0; transform: rotate(-9deg) scale(1.7); }
+  to { opacity: .92; transform: rotate(-9deg) scale(1); }
+}
+#auditActions { display: flex; justify-content: center; padding-bottom: 20px; }
+
+/* ---------- dossier ---------- */
+.dossier-card {
+  max-width: 420px; border: 1px solid #2e3240; border-radius: 4px;
+  background: #191c22; padding: 26px 28px; text-align: left;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  transform: rotate(-1deg);
+}
+.dossier-head {
+  font-size: 10px; letter-spacing: .25em;
+  color: #5c5546; margin-bottom: 14px;
+}
+.dossier-title {
+  font-size: 22px; font-weight: 700; letter-spacing: .1em; color: #d96a5a;
+  border-bottom: 1px dashed #2e3240; padding-bottom: 12px; margin-bottom: 14px;
+}
+.dossier-arg { font-style: italic; color: #ece5d8; font-size: 15px; line-height: 1.6; }
+.dossier-meta { font-size: 11px; color: #8d8471; margin-top: 10px; }
+.dossier-note { font-size: 13px; color: #e8b34b; margin-top: 16px; }
+.dossier-card button { margin-top: 18px; width: 100%; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 560px) {
+  #hand { grid-template-columns: repeat(2, 1fr); }
+  #docket, #docket thead, #docket tbody { display: block; }
+  #docket { font-size: 10px; }
+  #docket tr {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    border-bottom: 1px dashed var(--line);
+  }
+  #docket thead tr { border-bottom: 1px solid var(--line); }
+  #docket thead th.c-file { display: none; }
+  #docket td, #docket th { padding: 5px 4px; border-bottom: 0; }
+  /* glyph + name on one full-width line; facts + stamp aligned below */
+  #docket td.c-file { grid-column: 1 / -1; white-space: nowrap; }
+  #docket td.c-file .glyph { font-size: 13px; margin-right: 6px; }
+  #docket td.c-file .name { display: inline; font-size: 11px; }
+  #docket td.c-fact { padding-left: 0; }
+  #docket td.c-stamp { padding-right: 2px; }
+  #caseBtns .vb { flex: 1; min-width: 0; }
+  #fileBtn { min-width: 0; width: 100%; }
+  #hud { font-size: 10px; gap: 10px; }
+  .fact .mk { font-size: 9px; }
+}
+
+/* ---------- enrichment pass ---------- */
+.new {
+  font-family: ui-monospace, monospace; font-size: 8px; letter-spacing: .15em;
+  color: var(--btnink); background: var(--accent); border-radius: 3px;
+  padding: 1px 5px; vertical-align: middle; margin-left: 4px;
+}
+
+/* clue button in the docket header */
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+#docketHead { display: flex; align-items: center; }
+.clue {
+  font-family: ui-monospace, monospace; font-size: 9.5px; letter-spacing: .08em;
+  background: transparent; color: var(--accent); border: 1px dashed var(--accent-dim);
+  border-radius: 4px; padding: 5px 10px; min-height: 0; box-shadow: none;
+}
+.clue:hover:not(:disabled) { border-style: solid; box-shadow: none; transform: none; }
+.clue:disabled { color: var(--faint); border-color: var(--line); opacity: 1; }
+tr.new-row td { animation: chipin .45s ease backwards; }
+
+/* liar flagging */
+#docket tr.flaggable { cursor: pointer; }
+#docket tr.flaggable:hover td { background: rgba(138,90,18,.06); }
+body[data-shift="night"] #docket tr.flaggable:hover td { background: rgba(232,179,75,.06); }
+#docket tr.flagged td.c-stamp { color: var(--accent); }
+#docket tr.flagged td { border-bottom-style: solid; }
+
+/* sticky file bar with oath */
+#oathNote {
+  font-family: ui-monospace, monospace; font-size: 9.5px; line-height: 1.4;
+  color: var(--faint); letter-spacing: .02em; text-align: center;
+}
+#fileBar {
+  position: sticky; bottom: 0; z-index: 10;
+  display: flex; align-items: center; gap: 12px;
+  margin: 4px -16px 0; padding: 9px 16px calc(9px + env(safe-area-inset-bottom, 0px));
+  background: var(--paper); border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 14px var(--paper);
+}
+#fileBar #fileBtn {
+  position: static; flex: 1; margin: 0; padding: 12px 18px;
+  border-radius: 3px; border-top: 0; box-shadow: none;
+  background: var(--btn); color: var(--btnink);
+}
+#fileBar #fileBtn:disabled { color: var(--faint); }
+#fileBar #fileBtn:hover:not(:disabled) { box-shadow: none; }
+#oathWrap { display: flex; align-items: center; flex-shrink: 0; }
+#oathBtn {
+  font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .06em;
+  background: transparent; color: var(--accent); border: 1.5px solid var(--accent-dim);
+  border-radius: 4px; padding: 0 10px; height: 44px; box-shadow: none;
+  white-space: nowrap;
+}
+#oathBtn.on { background: rgba(138,90,18,.12); border-color: var(--accent); }
+body[data-shift="night"] #oathBtn.on { background: rgba(232,179,75,.12); }
+
+
+/* suspense verdict */
+.fact.pre { opacity: 0; transform: translateY(4px); }
+.fact { transition: opacity .25s ease, transform .25s ease; }
+.fact .mk.pulse { animation: mkpulse .4s ease-in-out infinite alternate; font-size: 14px; }
+@keyframes mkpulse { from { opacity: .25; } to { opacity: 1; } }
+#lieLine {
+  font-family: ui-monospace, monospace; font-size: 11.5px; letter-spacing: .04em;
+  color: var(--accent); border: 1px dashed var(--accent-dim); border-radius: 6px;
+  padding: 7px 16px; max-width: 46ch;
+}
+
+/* night clock */
+#clockBar {
+  position: relative; height: 12px; border: 1px solid var(--line);
+  border-radius: 999px; background: var(--card); overflow: hidden;
+}
+#clockFill { height: 100%; width: 100%; background: var(--accent); transition: width .1s linear; }
+#clockBar.overtime #clockFill { background: var(--faint); }
+#clockMsg {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: ui-monospace, monospace; font-size: 8px; letter-spacing: .14em;
+  color: var(--faint);
+}
+
+/* amendment banner */
+#amendBanner {
+  position: fixed; inset: 0; z-index: 25;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8,8,12,.86);
+  font-family: ui-monospace, monospace; text-align: center;
+  animation: fadein .25s ease;
+}
+#amendBanner .amend-panel {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  max-width: 440px; margin: 0 20px; padding: 26px 34px;
+  background: #14161c; border: 2px solid #d96a5a; border-radius: 6px;
+  box-shadow: 0 18px 60px rgba(0,0,0,.7);
+  transform: rotate(-.5deg);
+}
+/* it does not fade in, it falls out of the ceiling and lands */
+#amendBanner.falling .amend-panel {
+  animation: amendslam .5s cubic-bezier(.52,0,.86,.42) both;
+}
+@keyframes amendslam {
+  0% { opacity: 0; transform: translateY(-72vh) rotate(-7deg) scale(1.16); }
+  10% { opacity: 1; }
+  86% { transform: translateY(7px) rotate(1.4deg) scale(.99); }
+  100% { transform: translateY(0) rotate(-.5deg) scale(1); }
+}
+/* the room flashes red where it hit */
+#amendBanner .amend-panel { z-index: 1; }
+#amendBanner.falling::after {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 46%,
+    rgba(217,106,90,.45), rgba(217,106,90,.1) 42%, transparent 68%);
+  animation: amendflash .75s ease-out .34s both;
+}
+@keyframes amendflash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+/* everything on the desk shifts when the rider lands */
+.recoil { animation: recoil .34s cubic-bezier(.3,1.4,.4,1); }
+@keyframes recoil {
+  22% { transform: translateX(-4px); }
+  48% { transform: translateX(4px); }
+  72% { transform: translateX(-2px); }
+}
+/* the amendment is stapled over the old rule, not scrolled in */
+#amendBanner .amend-panel::after {
+  content: ""; position: absolute; top: 9px; right: 13px;
+  width: 30px; height: 8px; border-radius: 2px;
+  border: 1.5px solid rgba(236,229,216,.28);
+  background: rgba(236,229,216,.08);
+  transform: rotate(-16deg);
+}
+
+#amendBanner b {
+  font-size: clamp(20px, 5vw, 32px); letter-spacing: .3em; color: #d96a5a;
+}
+#amendBanner span { font-size: 13px; letter-spacing: .08em; color: #ece5d8; max-width: 40ch; }
+#amendBanner .amend-ack {
+  font-family: ui-monospace, monospace; font-size: 9px;
+  letter-spacing: .18em; color: #899bb5; margin-top: 4px;
+  animation: ackpulse 1.8s ease-in-out infinite;
+}
+@keyframes ackpulse { 50% { opacity: .45; } }
+/* a criterion crossed off the rule, not greyed out */
+.chip.struck {
+  position: relative; opacity: .55;
+  animation: chipstrike .34s ease;
+}
+.chip.struck::after {
+  content: ""; position: absolute; left: -5px; right: -5px; top: 50%;
+  height: 2px; background: var(--red);
+  transform-origin: left center; transform: rotate(-2.5deg);
+  animation: slashin .22s ease-out both;
+}
+@keyframes slashin { from { transform: rotate(-2.5deg) scaleX(0); } }
+@keyframes chipstrike {
+  30% { transform: translateX(-2px); }
+  65% { transform: translateX(2px); }
+}
+.chip.flash { animation: chipflash .5s ease 2; }
+@keyframes chipflash { 50% { background: rgba(232,179,75,.35); } }
+.amended-tag { color: var(--red); font-size: 9px; letter-spacing: .15em; margin-left: 4px; }
+
+/* case filer + streak */
+.case-card .filer {
+  font-family: ui-monospace, monospace; font-size: 9px; letter-spacing: .14em;
+  color: var(--faint);
+}
+.case-card .filer i { font-style: normal; margin-left: 8px; color: var(--faint); }
+#streakTag {
+  margin-left: 10px; color: var(--accent); letter-spacing: .15em;
+}
+#streakTag.pop { animation: streakpop .3s cubic-bezier(.2,2,.4,1); display: inline-block; }
+@keyframes streakpop { 50% { transform: scale(1.4); } }
+.case-reason { color: var(--green); }
+.case-card .case-verdict.bad + .case-reason { color: var(--red); }
+/* the ruling only speaks once the stamp has landed */
+.case-card .case-verdict,
+.case-card .case-reason,
+.case-card .case-cont { animation: rulingin .3s ease .28s backwards; }
+@keyframes rulingin { from { opacity: 0; transform: translateY(-3px); } }
+
+/* finale */
+#finalePhase { display: flex; flex-direction: column; gap: 16px; padding-top: 6px; }
+#finaleWrap { overflow-x: auto; }
+#finaleTable {
+  width: 100%; border-collapse: collapse;
+  font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--ink);
+}
+#finaleTable th {
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--faint); font-weight: 400; text-align: left;
+  border-bottom: 1px solid var(--line); padding: 4px 6px;
+}
+#finaleTable td { border-bottom: 1px dashed var(--line); padding: 8px 6px; white-space: nowrap; }
+#finaleTable td.c-file .glyph { font-size: 15px; margin-right: 6px; }
+#finaleTable td.c-filer { letter-spacing: .12em; color: var(--accent); }
+#finaleTable td.c-ts { color: var(--faint); }
+#finaleTable td.c-cut { color: var(--red); font-weight: 700; letter-spacing: .12em; }
+#finaleTable tr.cut td { opacity: .45; }
+#finaleTable tr.cut td.c-cut { opacity: 1; }
+/* ---------- the decree: a form you fill in and sign ---------- */
+#decree {
+  position: relative; align-self: center; width: 100%; max-width: 560px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 2px;
+  padding: 18px 22px 20px; text-align: left;
+  transform: rotate(-.35deg);
+  box-shadow: 0 1px 0 rgba(0,0,0,.05), 0 28px 50px -32px rgba(0,0,0,.75);
+  transition: background-color .5s, border-color .5s;
+}
+/* the red margin rule of a legal pad */
+#decree::before {
+  content: ""; position: absolute; top: 12px; bottom: 12px; left: 9px;
+  border-left: 1px solid rgba(176,48,40,.22);
+}
+body[data-shift="night"] #decree::before { border-color: rgba(217,106,90,.26); }
+.decree-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: ui-monospace, monospace; font-size: 9.5px; letter-spacing: .22em;
+  color: var(--faint); padding-right: 78px;
+  border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 14px;
+}
+.decree-no { letter-spacing: .12em; }
+.decree-op {
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: clamp(15px, 3vw, 18px); line-height: 1.55; color: var(--ink);
+  margin: 0 0 14px;
+}
+.decree-op b { letter-spacing: .1em; }
+/* the blank you fill in — ink, not a value */
+.blank {
+  display: inline-block; min-width: 9ch; padding: 0 4px 1px;
+  border-bottom: 1px dashed var(--accent-dim);
+  color: var(--accent); font-style: italic;
+}
+.blank.filled { border-bottom-style: solid; }
+.blank.written { animation: writein .34s ease backwards; }
+@keyframes writein { from { opacity: 0; transform: translateY(3px); } }
+
+#ruleChoices { display: flex; flex-direction: column; margin-bottom: 18px; }
+.rule-choice {
+  display: flex; align-items: baseline; gap: 10px;
+  background: transparent; color: var(--ink); border: 0;
+  border-bottom: 1px dotted var(--line); border-radius: 0;
+  padding: 9px 8px; text-align: left; box-shadow: none;
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: 13.5px; letter-spacing: .02em; opacity: .7;
+}
+.rule-choice b {
+  font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .1em;
+  color: var(--faint); flex-shrink: 0;
+}
+.rule-choice .tick {
+  margin-left: auto; font-style: normal; color: var(--accent);
+  opacity: 0; transform: scale(.4);
+  transition: opacity .15s ease, transform .22s cubic-bezier(.2,2,.4,1);
+}
+.rule-choice:hover:not(:disabled) {
+  opacity: 1; background: rgba(138,90,18,.06);
+  border-bottom-color: var(--accent-dim); box-shadow: none; transform: none;
+}
+.rule-choice.on { opacity: 1; border-bottom-color: var(--accent); }
+.rule-choice.on b { color: var(--accent); }
+.rule-choice.on .tick { opacity: 1; transform: scale(1); }
+
+/* the signature block */
+.sign-row { display: flex; align-items: flex-end; gap: 16px; justify-content: space-between; }
+.sign-slot { flex: 1; min-width: 0; }
+.sign-label {
+  display: block; font-family: ui-monospace, monospace; font-size: 8.5px;
+  letter-spacing: .26em; text-transform: uppercase; color: var(--faint);
+  border-bottom: 1px solid var(--line); padding-bottom: 3px;
+}
+#signature { display: block; width: 190px; max-width: 100%; height: 52px; opacity: 0; }
+#signature path {
+  fill: none; stroke: var(--ink); stroke-width: 2.4;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 100; stroke-dashoffset: 100;
+}
+#decree.signed #signature { opacity: 1; }
+#decree.signed #signature path { animation: signdraw .8s cubic-bezier(.55,.05,.3,1) forwards; }
+@keyframes signdraw { to { stroke-dashoffset: 0; } }
+#signBtn {
+  flex-shrink: 0; min-width: 0; padding: 12px 20px;
+  font-family: ui-monospace, monospace; font-size: 12px; letter-spacing: .14em;
+}
+#signBtn:disabled { opacity: .45; }
+/* the seal does not fade in either */
+.decree-seal {
+  position: absolute; right: 16px; top: 9px;
+  font-family: ui-monospace, monospace; font-size: 14px; font-weight: 700;
+  letter-spacing: .2em; color: var(--red);
+  border: 2.5px solid var(--red); border-radius: 3px; padding: 3px 10px;
+  opacity: 0; transform: rotate(9deg) scale(1.7);
+}
+#decree.signed .decree-seal { animation: sealslam .42s cubic-bezier(.4,0,.82,.42) .55s forwards; }
+@keyframes sealslam {
+  82% { opacity: 1; transform: rotate(13deg) scale(.94); }
+  to { opacity: 1; transform: rotate(12deg) scale(1); }
+}
+
+/* share block */
+#shareBlock {
+  font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.5;
+  color: #ece5d8; background: #1c1f27; border: 1px solid #2e3240; border-radius: 6px;
+  padding: 12px 18px; text-align: left; white-space: pre; letter-spacing: .02em;
+}
+#copyBtn { min-height: 36px; padding: 8px 18px; font-size: 12px; }
+#copySink { position: fixed; left: -9999px; top: 0; }
+.endline { display: block; }
+#title .sub::after {
+  content: "▍"; color: #e8b34b;
+  animation: blink 1.1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+.title-scene .stamp-in {
+  opacity: 0; transform-box: fill-box; transform-origin: center;
+  animation: stampin .38s cubic-bezier(.2, 2.2, .4, 1) forwards;
+}
+@keyframes stampin {
+  from { opacity: 0; transform: scale(1.7) rotate(-5deg); }
+  to { opacity: var(--so, 1); transform: none; }
+}
+.title-scene .bulb { animation: bulbflicker 9s linear infinite; }
+@keyframes bulbflicker {
+  0%, 100% { opacity: 1; }
+  86% { opacity: 1; }
+  87.5% { opacity: .55; }
+  89% { opacity: 1; }
+  93% { opacity: .8; }
+  94% { opacity: 1; }
+}
+.title-scene .mote {
+  fill: #e8b34b; opacity: 0;
+  animation: motedrift 7s linear infinite;
+}
+.title-scene .mote.m2 { animation-delay: 2.3s; }
+.title-scene .mote.m3 { animation-delay: 4.6s; }
+@keyframes motedrift {
+  0% { opacity: 0; transform: translateY(10px); }
+  25% { opacity: .7; }
+  100% { opacity: 0; transform: translateY(-48px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-scene *, #title .sub::after { animation: none; }
+  .title-scene .stamp-in { opacity: var(--so, 1); }
+  .title-scene .steam { opacity: .3; }
+}
+/* ---------- one desk, every screen: paper grain over everything ---------- */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 60; pointer-events: none;
+  opacity: .05; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+/* the shift badge is a lamp with a live filament */
+#hudShift { display: inline-flex; align-items: center; gap: 6px; }
+#hudShift::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent); box-shadow: 0 0 7px var(--accent);
+  animation: ledpulse 2.6s ease-in-out infinite;
+}
+
+/* ---------- dawn: the last shift ends, the sun does not care ---------- */
+#dawn { overflow: hidden; background: #0b0d12; }
+.dawn-scene { position: absolute; inset: 0; width: 100%; z-index: 0; animation: none; }
+.dawn-scene svg { display: block; width: 100%; height: 100%; }
+#dawn > *:not(.dawn-scene) { position: relative; z-index: 1; }
+.dawn-scene .sun { transform-box: fill-box; transform-origin: center bottom; animation: sunup 2.6s cubic-bezier(.2,.8,.3,1) backwards; }
+@keyframes sunup { from { transform: translateY(34px) scale(.9); opacity: 0; } }
+.dawn-scene .dm { opacity: 0; animation: motedrift 6s linear infinite; }
+.dawn-scene .dm2 { animation-delay: 2s; }
+.dawn-scene .dm3 { animation-delay: 4s; }
+.share-wrap { position: relative; }
+.closed-stamp {
+  position: absolute; right: -10px; bottom: -12px;
+  font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: .22em; color: #d96a5a;
+  border: 2.5px solid currentColor; border-radius: 3px; padding: 3px 8px;
+  transform: rotate(-8deg); background: rgba(20,22,28,.85);
+  animation: stampin .5s cubic-bezier(.2,2.2,.4,1) .8s backwards;
+}
+@media (max-height: 700px) { .dawn-scene { width: min(300px, 70vw); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .aria-head *, #ariaText::after, #hudShift::before,
+  .dawn-scene .sun, .dawn-scene .dm, .closed-stamp,
+  .evidence, .case-card.fresh, .stamp::before,
+  .case-card.impact, .case-stamp.landed,
+  .case-card .case-verdict, .case-card .case-reason, .case-card .case-cont,
+  #caseBtns .vb.press { animation: none; opacity: 1; }
+  .case-card.stamped-human::after,
+  .case-card.stamped-sus::after { animation: none; opacity: .3; }
+  .contested-tag, .chip.struck, .chip.struck::after,
+  #amendBanner.falling .amend-panel { animation: none; }
+  #hudStrikes.third { transform: none; }
+  #hudStrikes.third::after { animation: none; opacity: 1; }
+  #decree.signed #signature path { animation: none; stroke-dashoffset: 0; }
+  #decree.signed .decree-seal { animation: none; opacity: 1; transform: rotate(12deg); }
+  .blank.written { animation: none; }
+  #amendBanner.falling::after { animation: none; opacity: 0; }
+}
+
+button.ghost {
+  background: transparent; color: inherit; border: 1px solid #2e3240;
+  box-shadow: none;
+}
+button.ghost:hover:not(:disabled) { transform: none; box-shadow: none; border-color: #8a6a2f; }
+
+@media (max-width: 560px) {
+  #decree { padding: 16px 16px 18px; }
+  .decree-head { padding-right: 66px; }
+  .sign-row { flex-direction: column; align-items: stretch; }
+  #signature { width: 160px; }
+  #signBtn { width: 100%; }
+  #fileBar { gap: 8px; padding: 8px 10px; }
+  #oathBtn { font-size: 10px; padding: 0 8px; }
+  #finaleTable, #finaleTable thead, #finaleTable tbody { display: block; }
+  #finaleTable { font-size: 10px; }
+  #finaleTable tr {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    border-bottom: 1px dashed var(--line);
+  }
+  #finaleTable thead tr { border-bottom: 1px solid var(--line); }
+  #finaleTable td, #finaleTable th { padding: 6px 3px; border-bottom: 0; white-space: nowrap; }
+  /* line 1: glyph + name left, filer + filed right; line 2: 4 equal fact
+     columns (aligned with the header) + CUT slot */
+  #finaleTable thead th.c-file, #finaleTable thead th.c-filer,
+  #finaleTable thead th.c-ts, #finaleTable thead th.c-cut { display: none; }
+  #finaleTable td.c-file { grid-column: 1 / 4; grid-row: 1; }
+  #finaleTable td.c-filer { grid-column: 4 / 5; grid-row: 1; text-align: right; padding-right: 6px; }
+  #finaleTable td.c-ts { grid-column: 5 / 6; grid-row: 1; text-align: right; }
+  #finaleTable td.c-fact { grid-row: 2; }
+  #finaleTable td.c-fact:nth-of-type(2) { grid-column: 1; }
+  #finaleTable td.c-fact:nth-of-type(3) { grid-column: 2; }
+  #finaleTable td.c-fact:nth-of-type(4) { grid-column: 3; }
+  #finaleTable td.c-fact:nth-of-type(5) { grid-column: 4; }
+  #finaleTable td.c-cut { grid-column: 5 / 7; grid-row: 2; text-align: right; }
+}
+
+/* tight viewports (itch iframe ~600px): squeeze the day phase so the
+   hand's card names clear the sticky file bar */
+/* ---------- trailer-beat juice ---------- */
+/* verdict stamp lands with a desk-shake */
+#frame.shake { animation: frameshake .45s ease; }
+@keyframes frameshake {
+  15% { transform: translate(-5px, 2px); }
+  35% { transform: translate(4px, -3px); }
+  55% { transform: translate(-3px, -1px); }
+  75% { transform: translate(2px, 1px); }
+}
+/* desk-lamp flicker while the amendment lands */
+#frame.lamp-flicker { animation: lampflick .12s steps(2) 7; }
+@keyframes lampflick {
+  50% { filter: brightness(1.35) saturate(.6); }
+}
+/* shutter-sweep wipe on day/night shift changes */
+body.wiping::after {
+  content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none;
+  background: linear-gradient(100deg, transparent 20%, var(--ink) 50%, transparent 80%);
+  opacity: .8; transform: translateX(-100%);
+  animation: wipesweep .7s ease forwards;
+}
+@keyframes wipesweep { to { transform: translateX(100%); } }
+/* the ghost replay inside the amendment panel */
+#amendGhost {
+  color: #e8b34b; border-top: 1px dashed #6b531f;
+  padding-top: 12px; font-size: 12px;
+}
+/* contested nightly case — the tag lands on the card like a stamp */
+.contested-tag {
+  display: inline-flex; flex-wrap: wrap; align-items: baseline;
+  justify-content: center; gap: 4px 10px;
+  font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .12em;
+  color: var(--red); border: 2px solid var(--red); border-radius: 3px;
+  background: rgba(217,106,90,.1);
+  padding: 4px 10px; margin: 0 auto 10px; width: max-content; max-width: 100%;
+  transform: rotate(-2deg);
+  animation: contestslam .44s cubic-bezier(.42,0,.82,.4) .16s backwards;
+}
+.contested-tag b { font-weight: 700; letter-spacing: .18em; }
+.contested-tag i { font-style: normal; color: var(--dim); font-size: 9.5px; letter-spacing: .1em; }
+@keyframes contestslam {
+  0% { opacity: 0; transform: rotate(-11deg) scale(2.7); }
+  74% { opacity: 1; transform: rotate(-1.2deg) scale(.93); }
+  100% { transform: rotate(-2deg) scale(1); }
+}
+/* hazard band along the top edge of a contested file */
+.case-card.contested { border-color: var(--accent-dim); }
+.case-card.contested::before {
+  content: ""; position: absolute; inset: -1px -1px auto; height: 5px; z-index: 3;
+  border-radius: 12px 4px 0 0;
+  background: repeating-linear-gradient(135deg,
+    var(--red) 0 5px, transparent 5px 11px);
+  opacity: .8;
+}
+
+/* cross-tag inspection highlight */
+#docket td.c-fact.tag-match {
+  background: rgba(232, 179, 75, 0.28) !important;
+  outline: 1.5px solid var(--accent);
+  outline-offset: -1px;
+  border-radius: 3px;
+  transition: background-color .15s ease;
+}
+body[data-shift="night"] #docket td.c-fact.tag-match {
+  background: rgba(232, 179, 75, 0.35) !important;
+}
+
+/* VALE anomaly card styling */
+.case-card.anomaly {
+  border-color: #d96a5a;
+  box-shadow: 0 0 20px rgba(217, 106, 90, 0.25), inset 0 0 12px rgba(217, 106, 90, 0.08);
+}
+.case-card.anomaly .filer {
+  color: #ff7b72 !important;
+  font-weight: 700;
+}
+.case-card .filer .anomaly-ts {
+  display: inline-block;
+  color: #fff;
+  background: #b03028;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+  font-size: 8.5px;
+  letter-spacing: .12em;
+  font-weight: bold;
+  animation: anomalyGlow 1.4s ease-in-out infinite alternate;
+}
+@keyframes anomalyGlow {
+  from { box-shadow: 0 0 4px #b03028; }
+  to { box-shadow: 0 0 12px rgba(255, 82, 82, 0.8); }
+}
+
+/* Day 1 Precedent Grouping */
+.docket-sec-header {
+  font-size: 9px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  font-weight: bold;
+  padding: 6px 8px 3px;
+}
+.docket-sec-header.human {
+  color: var(--green);
+  background: rgba(46, 107, 52, 0.12);
+  border-left: 3px solid var(--green);
+}
+.docket-sec-header.sus {
+  color: var(--red);
+  background: rgba(176, 48, 40, 0.1);
+  border-left: 3px solid var(--red);
+}
+
+@media (max-height: 640px) {
+  #hud { padding-bottom: 8px; }
+  #instr { margin: 6px 0 0; padding: 6px 12px; }
+  #ariaSay { margin-top: 4px; font-size: 12.5px; line-height: 1.4; }
+  #dayPhase { gap: 8px; }
+  #riddleWrap { padding: 8px 10px 6px; }
+  #stampBox { min-height: 78px; padding: 20px 14px 14px; }
+  .riddle-kicker { margin-bottom: 5px; }
+  .riddle-text { font-size: clamp(17px, 3.4vw, 22px); line-height: 1.25; }
+  .sec-head { margin-bottom: 5px; padding-bottom: 4px; }
+  #docket td { padding: 5px 6px; }
+  #docket th { padding: 3px 6px; }
+  .evidence { padding: 9px 10px 8px; }
+  .evidence .e-head .glyph { font-size: 20px; }
+  .evidence .name { margin: 4px 0 5px; }
+  #fileBar { padding: 7px 14px; }
+}
+
+/* ---- Shift brief: the staged reveal before each day's desk ---- */
+#shiftBrief {
+  position: fixed; inset: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8, 9, 13, 0.72);
+  backdrop-filter: blur(2px);
+}
+#shiftBrief.hidden { display: none; }
+.brief-card {
+  width: min(520px, 88vw);
+  background: linear-gradient(175deg, #1a1d26 0%, #14161c 100%);
+  border: 1px solid #3a2f1c;
+  border-left: 3px solid var(--amber, #e8b34b);
+  border-radius: 4px;
+  padding: 26px 30px 18px;
+  text-align: left;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .6), 0 0 0 1px rgba(0,0,0,.4);
+  animation: briefIn .45s cubic-bezier(.2, .9, .25, 1) both;
+}
+@keyframes briefIn {
+  from { opacity: 0; transform: translateY(18px) scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+.brief-day {
+  font-family: ui-monospace, monospace; font-size: 11px;
+  letter-spacing: .3em; color: var(--faint, #899bb5); margin: 0;
+}
+.brief-theme {
+  font-size: 26px; font-weight: 600; letter-spacing: .1em;
+  color: #ece5d8; margin: 6px 0 14px;
+}
+.brief-riddle {
+  font-family: Georgia, serif; font-style: italic;
+  font-size: 17px; line-height: 1.55; color: #d9cfb8;
+  min-height: 1.55em; margin: 0 0 14px;
+}
+.brief-riddle::after {
+  content: "▌"; color: var(--amber, #e8b34b);
+  animation: caretBlink 1s steps(1) infinite;
+}
+@keyframes caretBlink { 50% { opacity: 0; } }
+.brief-aria {
+  font-size: 12.5px; line-height: 1.5; color: #9aa4b5;
+  border-top: 1px solid #262a36; padding-top: 12px; margin: 0;
+}
+.brief-who { color: var(--amber, #e8b34b); font-family: ui-monospace, monospace; letter-spacing: .1em; }
+.brief-skip {
+  font-size: 9.5px; letter-spacing: .2em; color: #5a6478;
+  text-transform: uppercase; text-align: right; margin: 10px 0 0;
+}
+
+/* desk dims behind the brief */
+body.brief-up #frame { filter: brightness(.5) saturate(.8); }
+
+/* ---- the deal-in: docket rows and hand cards cascade after the brief ---- */
+#dayPhase.staging #docketBody tr,
+#dayPhase.staging #hand .evidence { opacity: 0; }
+#dayPhase.dealt #docketBody tr {
+  animation: rowDeal .42s cubic-bezier(.2, .8, .3, 1) both;
+  animation-delay: calc(var(--i, 0) * 110ms);
+}
+#dayPhase.dealt #hand .evidence {
+  animation: cardDeal .5s cubic-bezier(.2, .9, .3, 1) both;
+  animation-delay: calc(400ms + var(--i, 0) * 140ms);
+}
+@keyframes rowDeal {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cardDeal {
+  from { opacity: 0; transform: translateX(46px) rotate(2deg); }
+  to { opacity: 1; transform: none; }
+}
+/* each row's verdict ink punches in a beat after the paper lands */
+#dayPhase.staging .c-stamp .ink { opacity: 0; }
+#dayPhase.dealt .c-stamp .ink {
+  animation: inkPunch .28s cubic-bezier(.3, 1.4, .4, 1) both;
+  animation-delay: calc(var(--i, 0) * 110ms + 190ms);
+}
+@keyframes inkPunch {
+  from { opacity: 0; transform: scale(1.9) rotate(-14deg); }
+  to { opacity: 1; transform: scale(1) rotate(-8deg); }
+}
+.c-stamp .ink { display: inline-block; transform: rotate(-8deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .brief-card { animation: none; }
+  /* the painted room cuts between seats, it doesn't sweep */
+  #stage .bg-art { transition: none; }
+  #dayPhase.dealt #docketBody tr,
+  #dayPhase.dealt #hand .evidence,
+  #dayPhase.dealt .c-stamp .ink { animation: none; opacity: 1; }
+  .brief-riddle::after { animation: none; content: ""; }
+  /* the marked-up evidence stays marked — just without the flourish */
+  .case-card.fresh, .case-card.clean-drop.fresh { animation: none; }
+  .case-card.fresh:not(.clean-drop) .tel-row { animation: none; opacity: 1; }
+  .rc-compare > * { animation: none; opacity: 1; }
+  #caseBtns .vb:not(:disabled), .shift-lever-btn:not(:disabled), #signBtn:not(:disabled) { animation: none; }
+  .flag-row .flag-f { animation: none; opacity: 1; }
+  #auditSummary > * { animation: none; opacity: 1; }
+  #frame.catchflash { animation: none; }
+  .catch-pop, .forge-reading { animation: none; }
+  .forge-field { animation: none !important; opacity: 1; }
+  .px, #dayPhase:not(.hidden), #verdictPhase:not(.hidden), #auditPhase:not(.hidden),
+  #finalePhase:not(.hidden), #forgePhase:not(.hidden), #forgeMeta { animation: none !important; }
+  .night-seal { animation: none; opacity: .92; }
+  [data-tel] .ring ellipse { animation: none; stroke-dashoffset: 0; }
+  [data-tel].struck .tel-val::after { animation: none; transform: rotate(-3deg) scaleX(1); }
+  .case-card.flagging .flag-row { animation: none; }
+  .desk-motes i { animation: none; opacity: .16; }
+  .tray-slip.deal { animation: none; }
+}
+
+/* ---------- FORGE (the machine's shift) ---------- */
+#forgePhase {
+  max-width: 560px; margin: 0 auto; padding: 18px 14px 30px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+#forgeCard {
+  border: 1px solid var(--ink); background: var(--paper);
+  padding: 12px 14px; box-shadow: 4px 4px 0 rgba(0,0,0,.25);
+}
+#forgeCard .e-head { display: flex; align-items: center; gap: 10px; }
+#forgeCard .glyph { font-size: 1.6rem; }
+#forgeCard .filer { font-size: .85rem; letter-spacing: .04em; }
+#forgeCard .arg { font-style: italic; margin: 8px 0 4px; opacity: .85; }
+.forge-spec { font-size: .8rem; letter-spacing: .05em; margin: 6px 0 0; }
+.forge-spec.ok { color: var(--green); }
+.forge-spec.bad { color: var(--red); }
+#forgeFields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.forge-field {
+  display: flex; flex-direction: column; gap: 4px; text-align: left;
+  border: 1px solid var(--ink); background: var(--paper); color: var(--ink);
+  padding: 10px 12px; cursor: pointer; font: inherit;
+}
+.forge-field .ff-label { font-size: .68rem; letter-spacing: .14em; opacity: .65; }
+.forge-field .ff-val { font-size: .95rem; font-weight: 600; }
+.forge-field .ff-tier { font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; }
+.forge-field.tier-0 { border-color: var(--red); }
+.forge-field.tier-0 .ff-val { color: var(--red); }
+.forge-field.tier-0 .ff-tier { color: var(--red); }
+.forge-field.tier-1 .ff-tier { color: var(--accent); }
+.forge-field.tier-2 { border-color: var(--green); }
+.forge-field.tier-2 .ff-val { color: var(--green); }
+.forge-field.tier-2 .ff-tier { color: var(--green); }
+.forge-field:disabled { cursor: default; opacity: .75; }
+#forgeMeta {
+  display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  font-size: .85rem; letter-spacing: .05em;
+}
+#forgeMeta b { font-weight: 700; }
+.forge-cover b { color: var(--accent); }
+.forge-susp b { color: var(--ink); }
+#forgeActions { display: flex; justify-content: center; }
+.forge-result { text-align: center; padding: 6px 0; }
+.forge-verdict {
+  font-size: 1.5rem; font-weight: 800; letter-spacing: .18em;
+  margin: 0;
+}
+.forge-result.slip .forge-verdict { color: var(--green); }
+.forge-result.flag .forge-verdict { color: var(--red); }
+.forge-why { font-size: .85rem; opacity: .8; margin: 4px 0 0; font-style: italic; }
+.forge-tally { font-size: .72rem; letter-spacing: .1em; opacity: .55; margin: 6px 0 0; font-family: ui-monospace, monospace; }
+#forgeCard { position: relative; }
+.forge-reading { letter-spacing: .22em; animation: readpulse 1s ease-in-out infinite; }
+@keyframes readpulse { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+@keyframes forgein { from { opacity: 0; transform: translateY(7px); } }
+.forge-bank { font-size: .72rem; letter-spacing: .12em; opacity: .5; font-style: italic; }
+
+/* ---------- THE WIRE: the desk remembers ---------- */
+#wireLog {
+  font-family: ui-monospace, monospace; font-size: .66rem; line-height: 1.5;
+  letter-spacing: .04em; color: var(--ink); opacity: .55;
+  max-height: 3.6em; overflow: hidden; padding: 2px 4px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--ink) 18%, transparent);
+  user-select: none;
+}
+.wire-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wire-line:last-child { opacity: 1; }
+.wire-line:not(:last-child) { opacity: .55; }
+
+/* ---------- TOOLTIPS ---------- */
+#uiTip {
+  position: fixed; z-index: 90; max-width: 240px;
+  background: var(--ink); color: var(--paper);
+  font-size: .72rem; line-height: 1.4; letter-spacing: .02em;
+  padding: 5px 9px; border-radius: 3px;
+  box-shadow: 3px 3px 0 rgba(0,0,0,.3);
+  pointer-events: none;
+}
+#uiTip::after {
+  content: ""; position: absolute; left: 50%; bottom: -4px;
+  width: 8px; height: 8px; background: var(--ink);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* ---------- PARTICLES ---------- */
+#fxLayer { position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden; }
+.px {
+  position: absolute; width: 4px; height: 4px; border-radius: 1px;
+  animation: pxfly .9s cubic-bezier(.15,.6,.4,1) forwards;
+}
+.px-ink { background: #1a1d24; }
+.px-paper { background: var(--paper); border: 1px solid rgba(0,0,0,.25); }
+.px-dust { background: color-mix(in srgb, var(--ink) 35%, transparent); border-radius: 50%; }
+@keyframes pxfly {
+  0% { opacity: 0; transform: translate(0,0) rotate(0); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); }
+}
+
+/* ---------- STATE MATRIX ---------- */
+button:focus-visible, tr[data-tip]:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.vb:active:not(:disabled), .shift-lever-btn:active:not(:disabled),
+#signBtn:active:not(:disabled), .forge-field:active:not(:disabled),
+.focus-btn:active:not(:disabled), .forge-field.cant { cursor: not-allowed; }
+#game button:active:not(:disabled) { transform: translateY(1px); }
+.forge-field.cant .ff-val { opacity: .45; }
+.forge-field.cant .ff-tier::after { content: " · can't reach"; opacity: .7; }
+#forgeMeta { animation: metain .3s ease-out; }
+@keyframes metain { from { opacity: .3; } }
+
+/* ---------- PHASE ARRIVAL ---------- */
+#dayPhase:not(.hidden), #verdictPhase:not(.hidden), #auditPhase:not(.hidden),
+#finalePhase:not(.hidden), #forgePhase:not(.hidden) {
+  animation: phasein .24s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes phasein {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+#wireLog:empty { display: none; }
+
+/* ---------- THE PREDICTION STAMP ---------- */
+/* before filing, the clerk calls the rule — one attribute, +25 if it keys
+   the seal. Optional: abstaining costs nothing, calling wrong costs nothing
+   either — the docket keeps the real answer either way. */
+#predictRow {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  justify-content: center; margin: 2px 0 8px;
+}
+#predictRow .pr-label {
+  font-family: ui-monospace, monospace; font-size: 9px;
+  letter-spacing: .18em; color: var(--faint);
+}
+.pr-btn {
+  font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: .12em; padding: 4px 11px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: transparent; color: var(--dim); cursor: pointer;
+  transition: all .14s ease;
+}
+.pr-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
+.pr-btn.picked { border-color: var(--accent); color: var(--accent);
+  background: rgba(232,179,75,.1); box-shadow: 0 0 8px rgba(232,179,75,.18); }
+.pred-verdict {
+  font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: .08em;
+  text-align: center; margin: 6px 0 0;
+}
+.pred-verdict.ok { color: var(--green); }
+.pred-verdict.bad { color: var(--faint); }
+
+/* ---------- HEAD OFFICE MEMO ---------- */
+#nightMemo {
+  font-family: ui-monospace, monospace; font-size: 9.5px;
+  letter-spacing: .14em; color: var(--accent);
+  text-align: center; margin: 0; opacity: .85;
+}
+#nightMemo::before { content: "✉ MEMO · "; color: var(--faint); }
+
+/* ---------- CLERK'S RECORD ---------- */
+.career-line {
+  font-family: ui-monospace, monospace; font-size: 10px;
+  letter-spacing: .14em; color: var(--dim); text-align: center;
+  margin: 6px 0 0;
+}
+.career-line b { color: var(--accent); font-weight: 700; }
+.end-career {
+  font-family: ui-monospace, monospace; font-size: 11px;
+  letter-spacing: .1em; color: var(--dim); margin-top: 8px;
+}
+.end-career b { color: var(--accent); }
+
+/* ---------- THE CLERK'S HANDBOOK ---------- */
+#handbook {
+  position: fixed; inset: 0; z-index: 85;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(9, 10, 14, .55); padding: 16px;
+}
+#handbook.hidden { display: none; }
+.hb-card {
+  width: min(680px, 94vw); max-height: 86vh; overflow-y: auto;
+  background: linear-gradient(170deg, #efe5c9, #e2d4ae);
+  color: #2a2416; border: 1px solid #8a744a; border-radius: 4px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.55), 4px 4px 0 rgba(0,0,0,.3);
+  padding: 16px 20px 12px;
+  transform: rotate(-.6deg);
+  animation: hbdrop .3s cubic-bezier(.2,.9,.3,1.1);
+}
+@keyframes hbdrop { from { opacity: 0; transform: rotate(-.6deg) translateY(-14px); } }
+.hb-head {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 2px solid #8a744a; padding-bottom: 8px; margin-bottom: 10px;
+  font-family: ui-monospace, monospace; font-size: 13px; letter-spacing: .22em;
+}
+#hbClose {
+  font-family: inherit; font-size: 12px; background: none; border: none;
+  color: #8a744a; cursor: pointer; padding: 2px 6px;
+}
+#hbClose:hover { color: #2a2416; }
+.hb-cols {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 18px;
+}
+.hb-cols section h4 {
+  font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .2em;
+  color: #7a5c22; margin: 0 0 6px;
+}
+.hb-cols section p {
+  font-size: 11.5px; line-height: 1.5; margin: 0 0 7px; color: #3a3220;
+}
+.hb-cols kbd {
+  font-family: ui-monospace, monospace; font-size: 9.5px;
+  border: 1px solid #8a744a; border-radius: 3px; padding: 0 4px;
+  background: rgba(255,255,255,.4);
+}
+.hb-mono { font-family: ui-monospace, monospace; font-size: 10.5px !important; }
+.hb-red { color: #8d2f24; }
+.hb-foot {
+  font-family: ui-monospace, monospace; font-size: 9px; letter-spacing: .16em;
+  color: #8a744a; text-align: center; margin: 12px 0 0;
+  border-top: 1px dashed #8a744a; padding-top: 8px;
+}
+
+/* ---------- ATTRACT REEL ---------- */
+#attractDesk {
+  position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%);
+  width: min(540px, 88vw); pointer-events: none; z-index: 5;
+}
+.at-stage {
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px 3px 8px 3px;
+  padding: 10px 14px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  transform: rotate(-.5deg);
+  animation: attractin .5s cubic-bezier(.2,.9,.3,1) backwards;
+}
+.at-dayhead {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .16em;
+  color: var(--dim); margin-bottom: 6px;
+}
+.at-dayhead b { color: var(--accent); }
+.at-docket { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.at-drow {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10.5px; padding: 2px 4px;
+  border-bottom: 1px dashed rgba(0,0,0,.08);
+  animation: attractin .3s ease backwards;
+}
+.at-dname { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.at-ruling {
+  font-family: ui-monospace, monospace; font-size: 8px; font-weight: 700;
+  letter-spacing: .14em; padding: 1px 6px; border: 1.5px solid currentColor;
+  border-radius: 3px; transform: rotate(-2deg);
+}
+.at-ruling.human { color: var(--green); }
+.at-ruling.sus { color: var(--red); }
+.at-rulebar {
+  font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .06em;
+  color: var(--dim); margin: 2px 0 6px;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  padding: 4px 2px;
+}
+.at-rulebar b { color: var(--ink); font-weight: 700; }
+.at-rulebar b.unsealed { color: var(--accent); animation: unseal .5s ease; }
+@keyframes unseal { from { opacity: .2; letter-spacing: .3em; } }
+.at-hand { display: flex; gap: 6px; margin-bottom: 6px; }
+.at-hcard {
+  flex: 1; background: #fbf6e8; border: 1px solid var(--line);
+  border-radius: 4px; padding: 5px 6px; text-align: center;
+  font-size: 9.5px; color: var(--ink);
+  animation: attractin .3s ease backwards;
+}
+.at-hcard .at-hname {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  margin-top: 3px; line-height: 1.15; overflow: hidden;
+  font-size: 8.5px; color: var(--dim);
+}
+.at-hcard.picked {
+  border-color: var(--accent); transform: translateY(-5px);
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
+}
+.at-verdict { position: relative; }
+.at-ruleline {
+  font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .05em;
+  color: var(--dim); margin-bottom: 5px;
+}
+.at-facts .facts { gap: 2px; }
+.at-facts .fact { font-size: 9.5px; padding: 1px 2px; }
+.at-facts .fact .fk { font-size: 8px; }
+.at-facts .fact .mk { font-size: 8.5px; }
+.at-stamp.big {
+  position: static; display: inline-block; margin-top: 6px;
+  font-size: 15px; padding: 3px 12px;
+}
+.at-card {
+  position: relative;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px 3px 8px 3px;
+  padding: 10px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  transform: rotate(-1.2deg);
+  animation: attractin .5s cubic-bezier(.2,.9,.3,1) backwards;
+}
+@keyframes attractin { from { opacity: 0; transform: rotate(-1.2deg) translateY(16px); } }
+.at-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+.at-glyph { font-size: 20px; }
+.at-name { font-weight: 700; font-size: 12px; flex: 1; }
+.at-filer { font-family: ui-monospace, monospace; font-size: 8.5px; color: var(--faint); letter-spacing: .1em; }
+.at-tel {
+  font-family: ui-monospace, monospace; font-size: 9px; color: var(--dim);
+  display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; margin: 6px 0;
+}
+.at-tel b { color: var(--ink); font-weight: 400; text-align: right; }
+.at-stamp {
+  position: absolute; top: 8px; right: 10px;
+  font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: .16em; padding: 2px 8px; border: 2.5px solid currentColor;
+  border-radius: 4px; transform: rotate(5deg);
+  animation: atstamp .3s cubic-bezier(.3,1.8,.5,1) backwards;
+}
+.at-stamp.human { color: var(--green); }
+.at-stamp.sus { color: var(--red); }
+@keyframes atstamp { from { opacity: 0; transform: rotate(5deg) scale(2.2); } }
+.at-wire {
+  font-family: ui-monospace, monospace; font-size: 8.5px; letter-spacing: .06em;
+  color: var(--dim); margin-top: 8px; min-height: 1.2em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #handbook.hidden, .hb-card { animation: none; }
+  .at-card, .at-stamp { animation: none; }
+  #attractDesk { display: none; }
+}
+
+/* locked tease: visible, honest about the terms */
+#machineTitleBtn.locked { opacity: .55; border-style: dashed; }
+#machineTitleBtn.locked:hover { opacity: .8; }
+
+/* ---------- the week wears the desk down: ledger degradation ---------- */
+/* grain thins as the nights pass — the paperwork gets too clean */
+body[data-wear="1"]::before { opacity: .045; }
+body[data-wear="2"]::before { opacity: .035; }
+body[data-wear="3"]::before { opacity: .025; }
+body[data-wear="4"]::before { opacity: .015; }
+
+/* the dream filing: your own argument under someone else's name */
+.echo-tag { color: #8c2f22; font-style: normal; letter-spacing: .04em; }
+
+/* the machine's face — portrait appears only where the fiction names it;
+   absent files remove themselves via onerror */
+.face-portrait {
+  display: inline-block; width: 84px; height: 84px; margin: 6px 0 0 8px;
+  border: 1px solid var(--paper-edge, #6b5a44); border-radius: 3px;
+  object-fit: cover; filter: sepia(.35) contrast(1.05); vertical-align: middle;
+  box-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+.endline .face-portrait { width: 56px; height: 56px; }
+
+/* WeLoveIndies F-license credit — the intro/attribution the demo license asks for */
+.music-credit {
+  font-size: 10px; letter-spacing: .08em; color: var(--dim, #8a7d63);
+  margin: 10px 0 0; opacity: .7;
+}
+.music-credit a { color: inherit; }
+
+/* dawn mugshot — the reveal deserves a frame, not a footnote */
+.end-mug {
+  display: flex; align-items: center; gap: 14px; margin: 14px auto 4px;
+  padding: 10px 16px; max-width: 460px;
+  background: linear-gradient(160deg, #efe6d2, #e2d4b8);
+  border: 1px solid #6b5a44; border-radius: 4px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.4), inset 0 0 0 4px rgba(255,252,240,.5);
+  transform: rotate(-1.2deg);
+}
+.end-mug img {
+  width: 84px; height: 84px; object-fit: cover; flex: none;
+  border: 1px solid #6b5a44; filter: sepia(.4) contrast(1.08);
+}
+.mug-meta { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.mug-name { font-weight: 700; letter-spacing: .14em; font-size: 15px; color: #2b2118; }
+.mug-tag { font-size: 11px; letter-spacing: .06em; color: #6b5a44; font-style: italic; }
+.endline.promote { color: #e8b34b; font-weight: 700; letter-spacing: .1em; }
+.title-hint { font-size: 10px; letter-spacing: .08em; color: var(--dim, #8a7d63); margin: 6px 0 0; opacity: .55; }
+.at-predict { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.at-prlabel { font-size: 10px; letter-spacing: .1em; color: var(--dim, #8a7d63); text-transform: uppercase; }
+.at-pchip {
+  font-size: 10px; letter-spacing: .06em; padding: 2px 8px;
+  border: 1px solid #6b5a44; border-radius: 3px; color: #8a7d63;
+}
+.at-pchip.picked { border-color: #e8b34b; color: #e8b34b; background: rgba(232,179,75,.12); }
+.at-predline { font-size: 11px; letter-spacing: .04em; margin: 6px 0 4px; }
+.at-predline.ok { color: #9ec27a; }
+.at-predline.bad { color: #d98a7a; }
+
+/* ---------- ambient pass: rain, wear, wire, ghost hints, strike pulse ---------- */
+
+/* visual rain over the night stage — opacity follows the week's wear,
+   matching the rain bed in the score */
+.rainfx { pointer-events: none; transition: opacity 1.2s ease; }
+.rainfx .rain-a { animation: rainfall-a 1.1s linear infinite; }
+.rainfx .rain-b { animation: rainfall-b 1.6s linear infinite; }
+@keyframes rainfall-a { to { transform: translate(-60px, 130px); } }
+@keyframes rainfall-b { to { transform: translate(-40px, 110px); } }
+body[data-wear="1"] .rainfx { opacity: .35; }
+body[data-wear="2"] .rainfx { opacity: .6; }
+body[data-wear="3"] .rainfx { opacity: .85; }
+body[data-wear="4"] .rainfx { opacity: 1; }
+
+/* late-week paper: the desk's paperwork gets tired before you do */
+.case-card { position: relative; }
+body[data-wear="3"] .case-card::after,
+body[data-wear="4"] .case-card::after {
+  content: ""; position: absolute; right: 8%; bottom: 6%;
+  width: 92px; height: 92px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, transparent 52%, rgba(122,74,30,.14) 58%, transparent 66%),
+              radial-gradient(circle, rgba(122,74,30,.05) 0%, transparent 55%);
+}
+body[data-wear="4"] .case-card::after { opacity: 1.4; }
+
+/* the wire teletypes — cursor on the line being printed */
+.wire-line:last-child::after {
+  content: "▌"; font-size: .8em; opacity: .7;
+  animation: blink 0.8s steps(1) infinite;
+}
+
+/* forge tier glyph */
+.ff-glyph { font-style: normal; font-size: .85em; opacity: .8; }
+
+/* flag row: fields identical to the previous filing read as thin grounds */
+.flag-f.dim { opacity: .45; font-style: italic; }
+.flag-f.dim:hover, .flag-f.dim:focus { opacity: .7; }
+
+/* ghost key hint — gone for good once you've stamped one */
+.keyhint {
+  font-size: 10px; letter-spacing: .1em; color: var(--dim, #8a7d63);
+  text-transform: uppercase; margin-top: 8px; text-align: center;
+  animation: hintpulse 2.4s ease-in-out infinite;
+}
+@keyframes hintpulse { 50% { opacity: .45; } }
+.keyhint.hidden { display: none; }
+
+/* strike flinch: a red vignette pulse when a mark lands on your file */
+body.strikepulse #frame::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(140,47,34,.38) 100%);
+  animation: strikepulse .4s ease-out forwards;
+}
+@keyframes strikepulse { from { opacity: 1; } to { opacity: 0; } }
+
+/* the dream filing's tag pulses once so the beat isn't missed */
+.echo-tag { animation: echoping 1.3s ease-in-out 2; }
+@keyframes echoping {
+  0%, 100% { text-shadow: none; }
+  50% { text-shadow: 0 0 9px rgba(140,47,34,.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rainfx .rain-a, .rainfx .rain-b { animation: none; }
+  .wire-line:last-child::after { animation: none; }
+  .keyhint { animation: none; }
+  .echo-tag { animation: none; }
+}
+
+
+/* ---------- three-read title hierarchy ---------- */
+/* first read = the verb (stamp-btn, already dominant); second = scene,
+   tagline, steps; third = everything else — recessive until looked at */
+#title .legend { margin: 10px 0 0; }
+#title .title-foot { margin-top: 14px; text-align: center; }
+#title .title-foot .hint { opacity: .6; margin: 0 0 4px; }
+#title .music-credit { font-size: 10px; opacity: .45; margin: 0; }
+/* the ticker holds the theme in one row */
+#title .shift-ledger { margin-top: 14px; width: min(480px, 90vw); }
+
+/* staged arrival: the screen assembles instead of arriving as a wall */
+#title .sub            { animation: titlerise .6s ease .25s backwards; }
+#title .steps          { animation: titlerise .6s ease .45s backwards; }
+#title .title-btns     { animation: titlerise .6s ease .65s backwards; }
+#title .legend         { animation: titlerise .5s ease .8s backwards; }
+#title .resume-slot    { animation: titlerise .5s ease .85s backwards; }
+#title .shift-ledger   { animation: titlerise .6s ease 1.0s backwards; }
+#title .title-foot     { animation: titlerise .6s ease 1.15s backwards; }
+@keyframes titlerise { from { opacity: 0; transform: translateY(7px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  #title .sub, #title .steps, #title .title-btns, #title .legend,
+  #title .resume-slot, #title .shift-ledger, #title .title-foot { animation: none; }
+  .shift-ledger .sl-i { transition: none; }
+}
+
+/* ---------- three-reads hierarchy: declared weight tiers ---------- */
+/* .read-2 = context (~85% presence); .read-3 = tools/lore (~55%, lifts on
+   approach). "Tertiary" is a class you declare, not a color you fiddle. */
+.read-2 { opacity: .85; }
+.read-3 { opacity: .55; transition: opacity .2s ease; }
+.read-3:hover, .read-3:focus-within { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .read-3 { transition: none; } }
+
+/* end screen: verdict + verb first, the rest recessed behind it */
+.end-secondary { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+
+/* staged arrival within phases — same grammar as the title's titlerise:
+   context lands first, the verb lands last. The screen assembles. */
+#dayPhase > *, #verdictPhase > *, #forgePhase > *,
+#auditPhase > *:not(#amendBanner) {
+  animation: titlerise .45s ease backwards;
+}
+#dayPhase > :nth-child(1) { animation-delay: .02s; }
+#dayPhase > :nth-child(2) { animation-delay: .12s; }
+#dayPhase > :nth-child(3) { animation-delay: .22s; }
+#dayPhase > :nth-child(4) { animation-delay: .3s; }
+#dayPhase > :nth-child(5) { animation-delay: .36s; }
+#dayPhase > :nth-child(6) { animation-delay: .44s; }  /* fileBar — the verb, last */
+#verdictPhase > :nth-child(1), #forgePhase > :nth-child(1),
+#auditPhase > :nth-child(1):not(#amendBanner) { animation-delay: .02s; }
+#verdictPhase > :nth-child(2), #forgePhase > :nth-child(2),
+#auditPhase > :nth-child(2):not(#amendBanner) { animation-delay: .1s; }
+#verdictPhase > :nth-child(3), #forgePhase > :nth-child(3),
+#auditPhase > :nth-child(3):not(#amendBanner) { animation-delay: .18s; }
+#verdictPhase > :nth-child(4), #forgePhase > :nth-child(4),
+#auditPhase > :nth-child(4):not(#amendBanner) { animation-delay: .26s; }
+#verdictPhase > :nth-child(5), #forgePhase > :nth-child(5),
+#auditPhase > :nth-child(5):not(#amendBanner) { animation-delay: .34s; }
+#verdictPhase > :nth-child(6), #forgePhase > :nth-child(6),
+#auditPhase > :nth-child(6):not(#amendBanner) { animation-delay: .4s; }
+#verdictPhase > :nth-child(7), #forgePhase > :nth-child(7),
+#auditPhase > :nth-child(7):not(#amendBanner) { animation-delay: .46s; }
+#verdictPhase > :nth-child(8), #forgePhase > :nth-child(8),
+#auditPhase > :nth-child(8):not(#amendBanner) { animation-delay: .52s; }
+#verdictPhase > :nth-child(9), #auditPhase > :nth-child(9):not(#amendBanner) { animation-delay: .56s; }
+#verdictPhase > :nth-child(10), #auditPhase > :nth-child(10):not(#amendBanner) { animation-delay: .6s; }
+
+/* the end screen assembles too — verdict first, verb, then the reveal */
+#dawn > *:not(.dawn-scene) { animation: titlerise .5s ease backwards; }
+#dawn > :nth-child(2) { animation-delay: .08s; }
+#dawn > :nth-child(3) { animation-delay: .16s; }
+#dawn > :nth-child(4) { animation-delay: .24s; }
+#dawn > :nth-child(5) { animation-delay: .32s; }
+#dawn > :nth-child(6) { animation-delay: .42s; }
+#dawn > :nth-child(7) { animation-delay: .5s; }
+#dawn > :nth-child(8) { animation-delay: .58s; }
+#dawn > :nth-child(9) { animation-delay: .66s; }
+#dawn > :nth-child(10) { animation-delay: .72s; }
+#dawn > :nth-child(11) { animation-delay: .78s; }
+#dawn > :nth-child(12) { animation-delay: .84s; }
+
+@media (prefers-reduced-motion: reduce) {
+  #dayPhase > *, #verdictPhase > *, #auditPhase > *:not(#amendBanner),
+  #forgePhase > *, #dawn > *:not(.dawn-scene) { animation: none; }
+}
+
+/* ---------- opening credits (WeLoveIndies trailer) ----------
+ * A film's opening credits: full screen, over before the desk appears,
+ * gone on the first input. The video is the only motion; reduced-motion
+ * skips the splash and keeps the static music credit on the title. */
+#creditsIntro {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #05070c;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 18px;
+  transition: opacity .35s ease;
+}
+#creditsIntro.gone { opacity: 0; pointer-events: none; }
+#creditsIntro video {
+  display: block; width: min(640px, 86vw); height: auto;
+  border-radius: 3px; box-shadow: 0 8px 40px rgba(0, 0, 0, .7);
+}
+#creditsIntro .ci-skip {
+  margin: 0; font-size: 10px; letter-spacing: .22em;
+  color: rgba(207, 194, 162, .45); text-transform: uppercase;
+}
