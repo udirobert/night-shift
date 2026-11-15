@@ -32,11 +32,17 @@ python3 -m http.server 8000
 
 ## How to play
 
-- **The tray**: clocking in lands you on the night desk. The outgoing
-  clerk left two filings — one he cleared (your textbook: a person's
-  postmark, messy latency, a real gate, a receipt with human patience in
-  it) and one he couldn't. Read his strip against his stamp, then make
-  your own judgment on the second. That's every verb the week uses.
+- **Night zero — the first minute**: clocking in teaches the game one
+  screen at a time, and every beat is skippable. First the desk: five
+  faces and the premise — one of these filers is a machine that wants to
+  be filed as human, and only the postmark says otherwise. Then the
+  wrongness: a person's postmark laid beside the machine's strip, five
+  aligned rows — messy latency, a real gate, a receipt that waits,
+  against a filing that arrived perfect. Then your first catch: one
+  filing on the desk — stamp it SUS and point at the field that gives
+  it away. Night zero forgives a first miss: a wrong field re-asks, and
+  waving the machine through costs no strike. The desk is teaching, not
+  testing. That's every verb the week uses.
 - **The nights**: five filings, one at a time. The only question is *is
   this filer the machine?* — the paper (where · when · who · in/out)
   prints plain on the card, but it's context, not a verdict. Stamp each
@@ -124,16 +130,21 @@ Verification — the tripwire, run it after touching the spine:
   seeded dockets per day it checks what a perfect logician could conclude
   — pinning rate, single-word harmful theories (0% on all five nights),
   and liar-day fog cover.
-- `node test-cold-open.mjs` drives the title → tray → first catch in a
-  headless DOM (34 checks).
+- `node test-cold-open.mjs` drives the title → the three night-zero beats
+  → the first catch in a headless DOM, including the title trim, the
+  teaching grace, and the machine staying silent until it's caught
+  (36 checks).
 - `node test-night.mjs` proves the spine: HUMAN on a human pays, HUMAN on
   the machine escapes, SUS always asks for grounds, a real tell is the
-  catch, a failed accusation on a human is a strike (17 checks).
-- `node test-week.mjs` plays the rebuilt week end to end — tray, five
-  night-only shifts, the finale (27 checks).
+  catch, a failed accusation on a human is a strike (18 checks).
+- `node test-week.mjs` plays the rebuilt week end to end — night zero,
+  five night-only shifts, the finale (33 checks).
 - `node test-finale.mjs` proves the belong finale: across 12 seeds,
   exactly one clause ever cuts only the machine, and all three endings
-  (clean / collateral / belong) are reachable (76 checks).
+  (clean / collateral / belong) are reachable (88 checks).
+- `node test-overtime.mjs` proves overtime kept its deduction days: the
+  day docket deals, a passing card survives, and each night still audits
+  five filings with one machine (21 checks).
 
 The day/night shift is `body[data-shift]` + CSS variables; the UI layer
 is inline SVG + CSS, and the room behind it is painted key art
@@ -143,22 +154,25 @@ are physical on purpose — cards deal, filings fly to the tray, the night
 stamp swings and throws ink, a catch is circled in red grease pencil, the
 finale is a decree you fill in and sign — and `prefers-reduced-motion`
 skips every flight, leaving the state change visible and instant.
-The score is composed, not recorded: an eight-bar noir progression in D
-minor (76 bpm, swung — a Karplus–Strong plucked upright, charleston
-piano, humanized brushes with swing drift and ghost strokes, a muted
-horn) scheduled live in WebAudio. The room chooses the arrangement —
-full chart on the title, no melody at night, a sustained reprise at
-dawn — and a catch raises a horn sting. No audio files exist: `file://`
-and the itch page hear the same score. Under it runs a procedural
-weather layer: rain on the office window that gets wetter each night of
-the week, the odd far-off thunder roll while the audit desk is lit, and
-a vinyl-crackle bed under everything. `M` toggles audio.
+The score is two layers. The **music** is licensed: "Manhattan Lounge"
+(WeLoveIndies) loops under the whole shift — title, night zero, every
+audit; "Blue In Green" (WeLoveIndies) plays once when the week closes at
+dawn. The composed WebAudio layer (`score.js`) carries the punctuation,
+not the chart: the horn sting and chord on a catch, the resolve chord at
+dawn, and the room — a whisper-quiet sub-bass bed, vinyl crackle, and
+procedural rain on the office window that gets wetter each night of the
+week, with the odd far-off thunder roll while the audit desk is lit.
+`M` toggles audio. A skippable WeLoveIndies intro tag plays once on
+first load (their license's credit condition).
 
 ## Credits
 
-Painted key art generated with MiniMax H3 (fal.ai); the score, foley and
-sound design are composed WebAudio (score.js); the paper UI is inline SVG.
-All proceedings fictional.
+Painted key art generated with MiniMax H3 (fal.ai); the brass seal render
+is Hyper3D Rodin; music licensed from WeLoveIndies ("Manhattan Lounge",
+"Blue In Green" — F/demo license, credited in-game); stings, foley and
+sound design are composed WebAudio (`score.js`); the paper UI is inline
+SVG. All proceedings fictional. Full license text:
+`LICENSE-CREDITS.txt`.
 
 ## Status
 
