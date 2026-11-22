@@ -140,13 +140,13 @@
   <div class="hb-card">
     <div class="hb-head"><b>CLERK'S HANDBOOK</b><button id="hbClose" aria-label="Close handbook">✕</button></div>
     <div class="hb-cols">
-      <section id="hbRead"><h4>READING A FILING</h4>
-        <p>A person's postmark is usually:</p>
+      <section id="hbRead"><h4>READING A PAPER</h4>
+        <p>A person's trip is usually:</p>
         <table class="hb-table">
-          <tr><td>LATENCY</td><td>110ms or more</td></tr>
-          <tr><td>ORIGIN</td><td>an outside gate</td></tr>
-          <tr><td>RELAYS</td><td>2 or more</td></tr>
-          <tr><td>RECEIPT</td><td>after it was filed</td></tr>
+          <tr><td>TRAVEL TIME</td><td>0.1 sec or more</td></tr>
+          <tr><td>SENT FROM</td><td>somewhere outside the office</td></tr>
+          <tr><td>STOPS</td><td>2 or more</td></tr>
+          <tr><td>ARRIVED</td><td>after it was sent</td></tr>
         </table>
         <p>Odd with no reason on the paper = machine. Odd with a reason = person.</p>
         <p><button id="hbReplay" type="button" class="tlink">Replay the tour</button></p>
@@ -158,25 +158,25 @@
         <p>File a card that fails the rule and it's a <b class="hb-red">STRIKE</b>. Three strikes and you're cut to jury duty.</p>
       </section>
       <section><h4>THE NIGHT — SPOT THE MACHINE</h4>
-        <p>Five filings a night. One is a machine. Stamp each <b>HUMAN</b> or <b class="hb-red">SUS</b> — the only question is: is this filer the machine?</p>
-        <p><kbd>1–4</kbd> circle a postmark field · <kbd>S</kbd>/<kbd>←</kbd> SUS · <kbd>H</kbd>/<kbd>→</kbd> HUMAN · <kbd>F</kbd> its file. Circle the field that reads wrong, then stamp SUS — a real tell is the catch (<b>+100</b>). The stakes are symmetric: <b>a wrong stamp is a strike, either direction</b> — wave the machine through, accuse a person on thin grounds, and the mark is yours. Three strikes and you're cut.</p>
-        <p>One filing is contested — right pays double. A flawless night earns <b>NIGHT CLEAR</b>.</p>
+        <p>Five papers a night. One was sent by a machine. Stamp each <b>HUMAN</b> or <b class="hb-red">SUS</b> — the only question is: did a person send it?</p>
+        <p><kbd>1–4</kbd> circle a line · <kbd>S</kbd>/<kbd>←</kbd> SUS · <kbd>H</kbd>/<kbd>→</kbd> HUMAN · <kbd>F</kbd> its file. Circle the line that reads wrong, then stamp SUS — a real tell is the catch (<b>+100</b>). The stakes are symmetric: <b>a wrong stamp is a strike, either direction</b> — wave the machine through, accuse a person on thin grounds, and the mark is yours. Three strikes and you're cut.</p>
+        <p>One paper is contested — right pays double. A flawless night earns <b>NIGHT CLEAR</b>.</p>
       </section>
-      <section><h4>THE POSTMARK — THE ONLY TESTIMONY</h4>
+      <section><h4>HOW IT GOT HERE — THE ONLY TESTIMONY</h4>
         <table class="hb-table">
-          <tr><th>field</th><th>a person</th><th>odd</th><th>the excuse on the paper</th></tr>
-          <tr><td>LATENCY</td><td>110ms+</td><td>3–28ms, or one already in its file</td><td>lobby terminal</td></tr>
-          <tr><td>ORIGIN</td><td>matches the card — EXT GATE indoors, STREET BOX out</td><td>GATE 0, or the wrong kind</td><td>walked in</td></tr>
-          <tr><td>RELAYS</td><td>2–5</td><td>0</td><td>hand-delivered</td></tr>
-          <tr><td>RECEIPT</td><td>after the filing</td><td>before the filing · no delay</td><td>priority queue</td></tr>
+          <tr><th>line</th><th>a person</th><th>strange</th><th>the excuse on the paper</th></tr>
+          <tr><td>TRAVEL TIME</td><td>0.1 sec or more</td><td>under 0.1 sec, or one already in its file</td><td>sent from the lobby downstairs</td></tr>
+          <tr><td>SENT FROM</td><td>matches the story — an indoor line indoors, a street mailbox out</td><td>inside this office, or the wrong kind for the story</td><td>walked in and handed it over</td></tr>
+          <tr><td>STOPS</td><td>2–5</td><td>none</td><td>hand-delivered</td></tr>
+          <tr><td>ARRIVED</td><td>after it was sent</td><td>before it was sent</td><td>desk clock runs slow</td></tr>
         </table>
-        <p>STREET BOX = outdoors · EXT GATE = indoors.</p>
-        <p>Nothing is received before it is filed.</p>
-        <p>It never files a new number twice — its file (<kbd>F</kbd>) keeps them.</p>
+        <p>indoor line = indoors · street mailbox = outdoors.</p>
+        <p>Nothing arrives before it is sent.</p>
+        <p>It never sends the same travel time twice — its file (<kbd>F</kbd>) keeps them.</p>
       </section>
       <section><h4>THE DESK</h4>
         <p><kbd>?</kbd> this card · <kbd>M</kbd> mute · tap a stamped case to continue.</p>
-        <p>Overtime deals generated rules. The Machine's Shift inverts the desk — you forge the postmark.</p>
+        <p>Overtime deals generated rules. The Machine's Shift inverts the desk — you forge how a paper got here.</p>
         <p>The wire remembers everything. It always does.</p>
       </section>
     </div>
@@ -258,7 +258,8 @@
       <rect x="0" y="0" width="640" height="300" filter="url(#paperGrain)" opacity=".06"/>
     </svg>
     </div>
-    <p class="sub">You're the night clerk. Five filings land on your desk. One was sent by a machine. Stamp it SUS.</p>
+    <p class="sub">You took the night job at the records office. Nobody mentioned the machine.</p>
+    <p class="sub2">Read five papers a night. Stamp the one a machine sent.</p>
     <!-- first read: the verb pair. second: resume/career. third: alternates.
          The how-to lives in the night-zero tour — the title says one thing. -->
     <div class="resume-slot" id="resumeSlot"></div>
@@ -294,7 +295,7 @@
       <div id="dayDots"></div>
       <span id="hudStrikes"></span>
       <span id="hudScore"></span>
-      <button id="mfileBtn" class="hidden" type="button" data-tip="every postmark the machine has filed — F toggles">its file · 0</button>
+      <button id="mfileBtn" class="hidden" type="button" data-tip="every trip the machine has made — F toggles">its file · 0</button>
       <button id="wireBtn" type="button" data-tip="the wire — tonight's events, in order">wire</button>
     </header>
 
@@ -424,8 +425,8 @@
       <div id="amendBanner" class="hidden"><div class="amend-panel"><b>⚠ AMENDMENT</b><span id="amendNote"></span><span id="amendGhost" class="hidden"></span><span class="amend-ack">— press or tap to acknowledge —</span></div></div>
       <div id="caseCard"></div>
       <div id="caseBtns">
-        <button id="susBtn" class="vb s shift-paddle-left" data-tip="Stamp SUS — you think this filing is the machine. Then name the postmark field that gives it away. (S or ←)"><span class="stamp-ring s" aria-hidden="true">S</span> SUS</button>
-        <button id="humanBtn" class="vb h shift-paddle-right" data-tip="Stamp HUMAN — this filer is a person. Wave the machine through and it costs a strike too. Three wrong stamps, either direction, and the desk cuts you. (H or →)">HUMAN <span class="stamp-ring h" aria-hidden="true">H</span></button>
+        <button id="susBtn" class="vb s shift-paddle-left" data-tip="Stamp SUS — you think this paper came from the machine. Then name the line that gives it away. (S or ←)"><span class="stamp-ring s" aria-hidden="true">S</span> SUS</button>
+        <button id="humanBtn" class="vb h shift-paddle-right" data-tip="Stamp HUMAN — this paper is from a person. Wave the machine through and it costs a strike too. Three wrong stamps, either direction, and the desk cuts you. (H or →)">HUMAN <span class="stamp-ring h" aria-hidden="true">H</span></button>
         <div id="auditKeyHint" class="keyhint hidden">← SUS · → HUMAN · ↵</div>
       </div>
       <div id="auditHint" aria-live="polite"></div>
@@ -475,12 +476,20 @@
       <div class="brief-card">
         <p class="brief-day" id="briefDay">DAY 1</p>
         <p class="brief-theme" id="briefTheme">🌅 THE DAWN</p>
-        <div id="briefFaces" class="brief-faces hidden"></div>
         <p class="brief-riddle" id="briefRiddle"></p>
         <p class="brief-aria"><span class="brief-who" id="briefWho">ARIA //</span> <span id="briefAria"></span></p>
-        <button id="briefSkip" class="tour-skip hidden" type="button">Skip tour</button>
         <p class="brief-skip">tap or press any key</p>
       </div>
+    </div>
+
+    <!-- STORY: five panels before the first coached filing — existing art,
+         one caption each, skippable. Only ever seen once (tour flag). -->
+    <div id="story" class="hidden">
+      <div id="storyPanel"></div>
+      <p class="story-cap" id="storyCap"></p>
+      <button id="storyNext" class="story-go hidden" type="button">Start the shift →</button>
+      <div id="storyDots"></div>
+      <button id="storySkip" type="button">Skip</button>
     </div>
 
     <!-- DOSSIER -->
@@ -550,13 +559,13 @@
     <p class="hint read-3">the week is closed — the docket never is. Replay this seed, clock in tomorrow, or work overtime.</p>
     <div class="end-secondary read-3">
       <button id="copyBtn" class="ghost">Copy result</button>
-      <button id="caseFileBtn" class="ghost" data-tip="download the full shift dossier — every stamp, postmark and wire entry">Case file</button>
+      <button id="caseFileBtn" class="ghost" data-tip="download the full shift dossier — every stamp, trip and wire entry">Case file</button>
       <button id="otBtn" class="ghost">Overtime — a fresh generated docket</button>
       <button id="machineEndBtn" class="ghost hidden">The Machine's Shift — become the thing you hunt</button>
     </div>
     <div class="shift-ledger read-3">
       <span class="sl-k">shift (v.)</span>
-      <span class="sl-i"><b>the postmark</b> — the only testimony on the desk</span>
+      <span class="sl-i"><b>the trip</b> — the only testimony on the desk</span>
       <span class="sl-i"><b>the machine</b> — its tells and face shifted every night</span>
       <span class="sl-i"><b>the desk</b> — five nights, and the strike count</span>
       <span class="sl-i"><b>the wire</b> — it remembered every stamp you made</span>

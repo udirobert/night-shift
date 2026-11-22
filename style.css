@@ -1268,12 +1268,15 @@ body[data-shift="night"] #docket td.c-stamp.sus { box-shadow: inset 0 0 0 999px 
 .case-stub .tel-row .tel-val { font-weight: 600; }
 .case-stub .tel-row {
   position: relative;
-  display: flex;
-  justify-content: space-between;
   line-height: 1.6;
   padding: 0 4px;
   margin: 0 -4px;
   border-radius: 3px;
+}
+.case-stub .tel-row .tel-line {
+  display: flex;
+  justify-content: space-between;
+  column-gap: 6px;
 }
 /* a human postmark prints a line at a time, like a receipt */
 .case-card.fresh:not(.clean-drop) .tel-row {
@@ -3535,8 +3538,142 @@ button.tlink.locked { opacity: .55; }
 .tour-skip.hidden { display: none; }
 
 /* the baseline prints itself on the stub — night zero + night one only */
+/* the "usually" line sits under the whole row, spanning both columns —
+   it can never squeeze the value */
 .tel-us {
   display: block; font-style: normal; font-weight: 400;
   font-size: 10px; letter-spacing: .04em; line-height: 1.25;
   color: rgba(83, 73, 47, .85);
+}
+
+/* ---------- the smaller second line under the title hook ---------- */
+#title .sub2 {
+  margin: 6px 0 0; font-size: 13px; line-height: 1.5;
+  color: #a89f8d; letter-spacing: .02em;
+  animation: titlerise .6s ease .3s backwards;
+}
+@media (prefers-reduced-motion: reduce) { #title .sub2 { animation: none; } }
+
+/* ---------- the story: five panels before the first coached paper ---------- */
+#story {
+  position: fixed; inset: 0; z-index: 60;
+  background: #0a0d12; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+#story.hidden { display: none; }
+#storyPanel { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.sp-art { position: absolute; inset: -6%; width: 112%; height: 112%; object-fit: cover; animation: spPan 9s ease-in-out infinite alternate; }
+@keyframes spPan {
+  from { transform: scale(1.02) translate(-1.2%, -1%); }
+  to { transform: scale(1.12) translate(1.2%, 1%); }
+}
+.sp-cards { display: flex; gap: 22px; align-items: center; justify-content: center; padding: 0 24px; }
+.sp-cards img {
+  width: clamp(150px, 26vw, 240px); border-radius: 4px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.6), 0 0 0 6px #efe4c8;
+  transform: rotate(var(--r, 0deg));
+  animation: spPan 10s ease-in-out infinite alternate;
+}
+.sp-cards img:nth-child(1) { --r: -3deg; }
+.sp-cards img:nth-child(3) { --r: 3deg; }
+.sp-card-wrap { position: relative; }
+.sp-card-wrap img {
+  width: clamp(240px, 44vw, 420px); border-radius: 4px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.65), 0 0 0 7px #efe4c8;
+  transform: rotate(-1.5deg);
+  animation: spPan 9s ease-in-out infinite alternate;
+}
+.sp-stamp {
+  position: absolute; left: 8%; bottom: 10%;
+  font-family: ui-monospace, monospace; font-weight: 800;
+  font-size: clamp(22px, 5vw, 40px); letter-spacing: .14em;
+  color: var(--pgreen, #3f7a4e); border: 4px solid currentColor;
+  border-radius: 6px; padding: 2px 16px; transform: rotate(-9deg);
+  background: rgba(240, 228, 194, .12);
+  animation: spStamp .7s cubic-bezier(.3,1.4,.4,1) .5s backwards;
+}
+@keyframes spStamp {
+  from { opacity: 0; transform: rotate(-24deg) scale(2.4); }
+  to { opacity: 1; transform: rotate(-9deg) scale(1); }
+}
+.sp-faces { display: flex; gap: clamp(8px, 2.4vw, 22px); align-items: flex-end; padding: 0 16px; }
+.sp-face { text-align: center; }
+.sp-face img {
+  width: clamp(52px, 13vw, 110px); aspect-ratio: 46/58; object-fit: cover;
+  border-radius: 3px; box-shadow: 0 8px 22px rgba(0,0,0,.55), 0 0 0 4px #e8dcc0;
+  transform: rotate(var(--r, 0deg));
+}
+.sp-face span {
+  display: block; margin-top: 8px;
+  font-family: ui-monospace, monospace; font-size: 11px;
+  letter-spacing: .18em; color: #d8cfb8;
+}
+.sp-face img.g { animation: faceGlitch .85s steps(5) both; }
+@keyframes faceGlitch {
+  0%, 100% { filter: none; clip-path: inset(0); }
+  20% { filter: grayscale(1) brightness(1.5); clip-path: inset(0 0 55% 0); }
+  40% { filter: grayscale(1) brightness(.45); clip-path: inset(22% 0 0 0); }
+  60% { filter: grayscale(1) brightness(1.2); clip-path: inset(0 0 30% 0); }
+  80% { filter: none; clip-path: inset(0); }
+}
+.sp-deskcard {
+  position: absolute; left: 50%; top: 56%;
+  width: clamp(180px, 30vw, 300px); aspect-ratio: 1.45;
+  background: #efe4c8; border-radius: 4px;
+  transform: translate(-50%, -50%) rotate(2.5deg);
+  box-shadow: 0 18px 44px rgba(0,0,0,.6), inset 0 0 0 10px #e2d3ae;
+}
+.story-cap {
+  position: absolute; left: 50%; bottom: clamp(88px, 14vh, 130px);
+  transform: translateX(-50%);
+  max-width: min(560px, 86vw); margin: 0; padding: 12px 20px;
+  background: rgba(8, 10, 14, .94); border: 1px solid rgba(216, 207, 184, .25);
+  border-radius: 6px;
+  font-family: Georgia, "Times New Roman", serif; font-style: italic;
+  font-size: 18px; line-height: 1.5; color: #ece5d8; text-align: center;
+}
+.story-go {
+  position: absolute; left: 50%; bottom: clamp(44px, 8vh, 76px); transform: translateX(-50%);
+  font-family: ui-monospace, monospace; font-size: 14px; letter-spacing: .1em;
+  color: #e8b34b; background: rgba(20, 22, 28, .9);
+  border: 1px solid rgba(232, 179, 75, .6); border-radius: 6px;
+  padding: 10px 22px; cursor: pointer;
+}
+.story-go:hover { background: rgba(232, 179, 75, .16); }
+#storyDots {
+  position: absolute; left: 50%; bottom: clamp(16px, 3vh, 30px); transform: translateX(-50%);
+  display: flex; gap: 8px;
+}
+.story-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(216, 207, 184, .28); }
+.story-dot.on { background: #e8b34b; }
+#storySkip {
+  position: absolute; top: 14px; right: 16px;
+  font-family: ui-monospace, monospace; font-size: 12px; letter-spacing: .1em;
+  color: #ece5d8; background: rgba(8, 10, 14, .85);
+  border: 1px solid rgba(216, 207, 184, .3); border-radius: 5px;
+  cursor: pointer; padding: 7px 12px;
+}
+#storySkip:hover { background: rgba(216, 207, 184, .16); }
+@media (max-width: 700px) {
+  /* the art owns the top of the frame; the caption plate sits on it */
+  #storyPanel { inset: 0 0 42% 0; }
+  .sp-art { inset: 0; width: 100%; height: 100%; }
+  .sp-cards { gap: 10px; padding: 0 12px; height: 100%; }
+  .sp-cards img { width: 28vw; height: 40vh; min-width: 0; object-fit: cover; }
+  .sp-faces { gap: 8px; padding: 0 10px; height: 100%; align-items: center; }
+  .sp-face img { width: 16vw; height: 40vh; min-width: 0; object-fit: cover; }
+  .sp-card-wrap img { width: 76vw; height: 40vh; object-fit: cover; }
+  .story-cap {
+    left: 8px; right: 8px; bottom: auto; top: calc(58% + 6px);
+    transform: none; max-width: none; font-size: 18px;
+  }
+  .story-go { bottom: 54px; }
+  #storyDots { bottom: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-art, .sp-cards img, .sp-card-wrap img, .sp-face img.g { animation: none; }
+  .sp-stamp { animation: none; }
+}
+@media (max-width: 639px) {
+  #auditHint { margin-top: 2px; font-size: 10px; line-height: 1.28; }
 }

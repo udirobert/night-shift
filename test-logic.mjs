@@ -180,5 +180,64 @@ assert(cuts[3].length === FINALE.length - 1 && !cuts[3].includes("VALE"),
   "finale: option d doesn't spare only VALE");
 console.log(`finale cuts: ${cuts.map((c) => c.join("+") || "none").join(" | ")}`);
 
+
+/* ---------- the plain-language display layer ---------- */
+assert(LOGIC.clock(529) === "2:49 am", "clock 529 → 2:49 am");
+assert(LOGIC.clock(40) === "6:40 pm", "clock 40 → 6:40 pm");
+assert(LOGIC.clock(361) === "12:01 am", "clock wraps midnight");
+assert(LOGIC.clock(360) === "12:00 am", "clock midnight");
+assert(LOGIC.clock(0) === "6:00 pm", "clock zero = 6 pm");
+assert(LOGIC.clock(1080) === "12:00 pm", "clock noon");
+
+assert(LOGIC.say("latency", { latency: "3ms" }) === "0.003 sec", "say latency 3ms");
+assert(LOGIC.say("latency", { latency: "217ms" }) === "0.217 sec", "say latency 217ms");
+assert(LOGIC.say("origin", { origin: "GATE 0" }) === "inside this office", "say GATE 0");
+assert(LOGIC.say("origin", { origin: "EXT GATE 4" }) === "indoor line 4", "say EXT GATE");
+assert(LOGIC.say("origin", { origin: "STREET BOX 6" }) === "street mailbox 6", "say STREET BOX");
+assert(LOGIC.say("hops", { hops: "0" }) === "none", "say hops 0");
+assert(LOGIC.say("hops", { hops: "3" }) === "3", "say hops 3");
+assert(LOGIC.say("receipt", { receipt: "rcvd +8h57m" }) === "2:57 am", "say receipt time");
+assert(LOGIC.say("receipt", { receipt: "rcvd +0h04m · queued" }) === "6:04 pm · held in a queue", "say receipt queued");
+assert(LOGIC.say("receipt", { receipt: "rcvd +1h02m · resent ×2" }) === "7:02 pm · sent twice", "say receipt resent");
+assert(LOGIC.say("receipt", { receipt: "rcvd +0h01m · no delay" }) === "6:01 pm · no delay", "say receipt other suffix passes through");
+
+// say(latency) must stay injective — the night-4 repeat tell matches exact values
+{
+  const seen = new Map();
+  let inj = true;
+  for (let ms = 3; ms <= 999; ms++) {
+    const out = LOGIC.say("latency", { latency: ms + "ms" });
+    if (seen.has(out) && seen.get(out) !== ms) { inj = false; break; }
+    seen.set(out, ms);
+  }
+  assert(inj, "say(latency) injective over 3–999ms");
+}
+
+assert(LOGIC.NEUTRAL_NOTES.length === 6, "NEUTRAL_NOTES length unchanged");
+
+// plain-language verdicts for each tell class
+{
+  const indoorCard = { tags: { setting: "indoor" } };
+  const outdoorCard = { tags: { setting: "outdoor" } };
+  assert(LOGIC.explainGround("latency", indoorCard, 500, { latency: "3ms" }, "x", [])
+    === "TRAVEL TIME 0.003 sec — nothing crosses the city that fast", "verdict: fast latency");
+  assert(LOGIC.explainGround("latency", indoorCard, 500, { latency: "213ms" }, "x",
+    [{ night: 2, tel: { latency: "213ms" } }])
+    === "TRAVEL TIME 0.213 sec — exactly what it sent on night 2", "verdict: repeated latency");
+  assert(LOGIC.explainGround("origin", indoorCard, 500, { origin: "GATE 0" }, "x", [])
+    === "SENT FROM inside this office — it's locked at night", "verdict: GATE 0");
+  assert(LOGIC.explainGround("origin", indoorCard, 500, { origin: "STREET BOX 3" }, "x", [])
+    === "SENT FROM street mailbox 3 — but the story is indoors", "verdict: street box indoors");
+  assert(LOGIC.explainGround("origin", outdoorCard, 500, { origin: "EXT GATE 3" }, "x", [])
+    === "SENT FROM indoor line 3 — but the story is outdoors", "verdict: indoor line outdoors");
+  assert(LOGIC.explainGround("hops", indoorCard, 500, { hops: "0" }, "x", [])
+    === "STOPS none — paper doesn't get here on its own", "verdict: no stops");
+  // receipt r < filedMin → "before it was sent"; r == filedMin → "the same minute"
+  assert(LOGIC.explainGround("receipt", indoorCard, 518, { receipt: "rcvd +8h35m" }, "x", [])
+    === "ARRIVED 2:35 am — before it was sent (2:38 am)", "verdict: arrived before sent");
+  assert(LOGIC.explainGround("receipt", indoorCard, 518, { receipt: "rcvd +8h38m" }, "x", [])
+    === "ARRIVED 2:38 am — the same minute it was sent", "verdict: arrived same minute");
+}
+
 console.log(failures === 0 ? "ALL PASS" : `${failures} FAILURES`);
 process.exit(failures ? 1 : 0);

@@ -46,6 +46,11 @@ let pass = 0, fail = 0;
 const ok = (name, cond) => { if (cond) { pass++; console.log("  ✓", name); } else { fail++; console.log("  ✗ FAIL:", name); } };
 const G = () => window.eval("G");
 const click = (el) => el.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+const JARGON = /\b(LATENCY|ORIGIN|RELAYS|RECEIPT|POSTMARK|GATE 0|EXT GATE|STREET BOX|rcvd|vpn)\b|\b\d+ms\b|\+\d+h\d\dm/;
+const jargon = (where) => {
+  const m = d.body.textContent.match(JARGON);
+  ok(`no machine-speak visible — ${where}${m ? ` (found "${m[0]}")` : ""}`, !m);
+};
 /* work one night: stamp HUMAN on humans, SUS + the seeded tell on the
  * machine; returns true if the machine was caught */
 async function workNight() {
@@ -54,6 +59,11 @@ async function workNight() {
     window.eval(`clearLater(); G.auditIdx = ${i}; G.auditLocked = false;`);
     window.renderCase();
     await sleep(120);
+    jargon(`case ${i + 1} render`);
+    const mf = $("#mfileBtn");
+    if (mf && !mf.classList.contains("hidden")) {
+      click(mf); await sleep(80); jargon("machine file open"); click(mf); await sleep(60);
+    }
     const sub = G().auditSubs[i];
     if (sub.bot) {
       window.stamp("SUS");
@@ -61,9 +71,11 @@ async function workNight() {
       const tell = sub.tel.tells[0];
       window.flagField(tell);
       if (sub.correct) caught = true;
+      jargon(`case ${i + 1} verdict`);
       await sleep(2800); // the catch auto-advances
     } else {
       window.stamp("HUMAN");
+      jargon(`case ${i + 1} verdict`);
       await sleep(1700);
     }
   }
@@ -81,8 +93,9 @@ await sleep(400);
 /* — night zero: the desk card, then two coached filings — */
 ok("cold open opens the week", G().coldOpen === true && G().phase === "audit");
 await sleep(1200);
-click($("#shiftBrief")); // beat 1 (the desk) → the coached case
-await sleep(400);
+ok("the story opens the week", !$("#story").classList.contains("hidden"));
+for (let i = 0; i < 5; i++) { click($("#story")); await sleep(120); }
+ok("the story ends on the coached case", $("#story").classList.contains("hidden") && !!$("#coach"));
 for (let s = 0; s < 2; s++) { click($("#coach .coach-next")); await sleep(200); } // coach to the live step
 ok("the tray leads with the machine's filing", G().auditSubs.length === 2 && G().auditSubs[0].filer === G().culprit);
 const bot0 = G().auditSubs[0];
@@ -111,6 +124,7 @@ for (let n = 0; n < 5; n++) {
   ok(`night ${n + 1} label reads NIGHT`, /NIGHT/.test(label));
   const caught = await workNight();
   caughtAny = caughtAny || caught;
+  jargon(`night ${n + 1} summary`);
   ok(`night ${n + 1} machine caught via the postmark`, caught);
   const btn = d.querySelector("#auditActions button");
   const isLast = n === 4;
@@ -123,6 +137,7 @@ ok("the machine was caught at least once this week", caughtAny);
 
 /* — the finale replaces the day-rule decree as the week's end — */
 ok("week ends at the finale", G().phase === "finale");
+jargon("finale ledger");
 ok("five nights were worked", G().nightResults.length === 5);
 
 /* — through the choice and onto the dawn screen (the last screen a judge sees) — */

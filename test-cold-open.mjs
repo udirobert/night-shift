@@ -69,8 +69,10 @@ ok("slate is muted inline, no loop", slate && slate.hasAttribute("muted") && sla
 
 // — title: the job and the verb, one big card, links beneath
 ok("title tooltips wired (data-tip on the verb card)", $("#startBtn").dataset.tip.length > 10);
-ok("title hook: night clerk, five filings, a machine, SUS",
-  /night clerk/i.test($(".sub").textContent) && /machine/i.test($(".sub").textContent) && /SUS/.test($(".sub").textContent));
+ok("title hook: the night job, the machine nobody mentioned",
+  /night job/i.test($(".sub").textContent) && /machine/i.test($(".sub").textContent));
+ok("title sub2: five papers a night, stamp the machine's",
+  /five papers a night/i.test($(".sub2").textContent) && /machine/i.test($(".sub2").textContent));
 ok("kicker names the genre", /five-night deduction thriller/i.test($(".kicker").textContent));
 ok("alternates demoted to text links in one row",
   ["#randomBtn", "#otTitleBtn", "#machineTitleBtn"].every((s) => $(s).classList.contains("tlink"))
@@ -83,40 +85,41 @@ ok("handbook has a Replay the tour affordance", /replay the tour/i.test($("#hbRe
 $("#startBtn").click();
 await sleep(900);
 
-// — beat 1: the desk, five faces, readable (no filtered ancestor)
-const brief = $("#shiftBrief");
+// — the story: five panels, then the coached filing
+const story = $("#story");
 await sleep(600);
-ok("beat 1 shows", !brief.classList.contains("hidden"));
-ok("beat 1 theme = NIGHT 0 — THE DESK", /THE DESK/.test($("#briefTheme").textContent));
-ok("beat 1 shows five faces with names", $$("#briefFaces .brief-face").length === 5
-  && $$("#briefFaces .brief-face span").every((s) => s.textContent.length > 1));
-ok("beat 1 premise: night clerk, a machine pretending, catch it",
-  /night clerk/i.test($("#briefRiddle").textContent) && /machine/i.test($("#briefRiddle").textContent));
-ok("beat 1 aria is the detective hook", /read what the wire can/.test($("#briefAria").textContent));
-ok("Skip tour visible on beat 1", !$("#briefSkip").classList.contains("hidden"));
-// the shrouded-brief defect: nothing above the card may carry a filter
-{
-  let filtered = false, el = brief.querySelector(".brief-card");
-  while (el) { if (el.style && /filter/.test(el.getAttribute("style") || "")) filtered = true; el = el.parentElement; }
-  const css = (await import("node:fs")).readFileSync(new URL("style.css", import.meta.url).pathname, "utf8");
-  ok("brief card has no filtered ancestor (no #frame dim rule)",
-    !filtered && !/brief-up #frame\s*\{\s*filter/.test(css));
-}
-
-// — coach step 1: the postmark, stamps asleep
-click(brief);
-await sleep(500);
-ok("brief dismissed for the coached case", brief.classList.contains("hidden"));
+ok("story opens on first clock-in", !story.classList.contains("hidden"));
+ok("panel 1 caption: the office closes at six", /office closes at six/.test($("#storyCap").textContent));
+ok("panel 1 uses the night room painting", !!$("#storyPanel .sp-art"));
+ok("five progress dots, first lit", $$(".story-dot").length === 5 && $$(".story-dot.on").length === 1);
+ok("Skip always visible", !!$("#storySkip"));
+for (let i = 0; i < 3; i++) { click(story); await sleep(150); }
+ok("panels advance on tap", $$(".story-dot.on").length === 1
+  && /senders isn't a person/.test($("#storyCap").textContent));
+ok("panel 4 shows all five senders with names",
+  $$(".sp-face").length === 5 && $$(".sp-face span").every((s) => s.textContent.length > 1));
+await sleep(700);
+ok("panel 4 glitch touches every portrait — no culprit hint",
+  $$(".sp-face img.g").length === 5);
+click(story); await sleep(150);
+ok("panel 5: desk and the shift button",
+  /last one who reads them by hand/.test($("#storyCap").textContent) && !$("#storyNext").classList.contains("hidden"));
+// — Skip leaves the story only: lands on coach step 1
+// (walk the whole thing once so panel 5's button proves itself, then
+//  re-check Skip on a fresh panel via the replay path below)
+$("#storySkip").click();
+await sleep(400);
+ok("story Skip lands on the coached case", story.classList.contains("hidden") && !!$("#coach"));
 ok("case card arrives", !!$(".case-card"));
-ok("coach bubble shows step 1 (postmark)",
-  !!$("#coach") && /postmark shows how the paper travelled/i.test($("#coach").textContent));
+ok("coach bubble shows step 1",
+  !!$("#coach") && /how the paper got here/i.test($("#coach").textContent));
 ok("instruction banner hidden while the coach teaches", $("#instr").classList.contains("hidden"));
 ok("coach docks in-flow at this width (no card overlay)",
   $("#coach").classList.contains("docked") && $("#coach").previousElementSibling === $("#instr"));
 ok("step 1 highlights the stub", !!$(".case-stub.coach-hi"));
 ok("stamps disabled before the live step", $("#susBtn").disabled && $("#humanBtn").disabled);
 ok("usually baseline prints on night zero",
-  $$(".tel-us").length === 4 && /110ms or more/.test($$(".tel-us")[0].textContent));
+  $$(".tel-us").length === 4 && /0.1 sec or more/.test($$(".tel-us")[0].textContent));
 ok("postmark stub present", !!$(".case-stub.read-2"));
 
 // — step 2: the note slip
@@ -233,10 +236,14 @@ async function boot() {
   const d2 = await boot(), w2 = d2.window, q = (s) => w2.document.querySelector(s);
   q("#startBtn").click();
   await sleep(900);
-  ok("skip tour visible on the beat-1 card", q("#briefSkip") && !q("#briefSkip").classList.contains("hidden"));
-  q("#briefSkip").click();
+  ok("story opens in the second boot too", !q("#story").classList.contains("hidden"));
+  q("#storySkip").click();
+  await sleep(400);
+  ok("story Skip lands on coach step 1 (not night one)",
+    q("#story").classList.contains("hidden") && !!q("#coach") && w2.eval("G.coldOpen === true"));
+  q("#coach .coach-skip").click();
   await sleep(800);
-  ok("Skip tour lands on night one", w2.eval("G.phase === 'audit' && G.coldOpen === false && G.auditSubs.length === 5"));
+  ok("coach's Skip tour lands on night one", w2.eval("G.phase === 'audit' && G.coldOpen === false && G.auditSubs.length === 5"));
   ok("Skip tour writes the done flag", w2.eval("localStorage.getItem('night-shift-tour-done')") === "1");
   ok("docket identical after skipping", w2.eval("G.auditSubs.map(s=>[s.filer,s.bot]).flat().join(',')") === nightOneDocket);
   d2.window.close();
@@ -246,7 +253,8 @@ async function boot() {
   const d3 = await boot(), w3 = d3.window, q = (s) => w3.document.querySelector(s);
   w3.eval("localStorage.setItem('night-shift-tour-done','1')");
   q("#startBtn").click();
-  await sleep(800);
+  // the punch-card animation defers startGame; poll rather than race it
+  for (let i = 0; i < 40 && !w3.eval("G.phase === 'audit' && G.auditSubs.length === 5"); i++) await sleep(100);
   ok("done flag: Clock in skips night zero", w3.eval("G.phase === 'audit' && G.coldOpen === false && G.auditSubs.length === 5"));
   d3.window.close();
 }
@@ -258,7 +266,7 @@ async function boot() {
   await sleep(900);
   ok("Replay clears the flag and starts the tour",
     w4.eval("localStorage.getItem('night-shift-tour-done')") === null
-    && w4.eval("G.coldOpen === true") && !q("#shiftBrief").classList.contains("hidden"));
+    && w4.eval("G.coldOpen === true") && !q("#story").classList.contains("hidden"));
   d4.window.close();
 }
 

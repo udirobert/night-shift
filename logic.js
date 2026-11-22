@@ -674,6 +674,21 @@ const FORGE_TIERS = {
   hops: ["0", "3", "5 · one resend"],
   receipt: ["+0.003s after post", "queued 2h14m", "rcpt delayed 83s · resent ×2"],
 };
+/* the forge bench speaks in raw wire values; the player reads these */
+const FORGE_SAY = {
+  "3ms": "0.003 sec",
+  "214ms": "0.214 sec",
+  "612ms · retried": "0.612 sec · sent twice",
+  "GATE 0": "inside this office",
+  "EXT GATE 4": "indoor line 4",
+  "EXT GATE 2 · vpn exit": "indoor line 2 · sent over a borrowed line",
+  "0": "none",
+  "3": "3",
+  "5 · one resend": "5 · sent twice",
+  "+0.003s after post": "0.003 sec after it was sent",
+  "queued 2h14m": "held in a queue for 2h14m",
+  "rcpt delayed 83s · resent ×2": "logged 83 sec late · sent twice",
+};
 const FORGE_SUSPICION = [2, 1, 0];           // per tier: machine / clean / lived-in
 const FORGE_GRANT = [5, 4, 3];               // cover chips granted per night
 const FORGE_CAP = 7;                          // banked cover can't exceed this
@@ -725,23 +740,23 @@ function forgeJudge(tiers, proofOk, nightIdx) {
  * Humans NEVER carry valid grounds; the machine carries exactly its
  * tells. All deterministic from the rng passed in. */
 const TEL_KEYS = ["latency", "origin", "hops", "receipt"];
-const TEL_LABELS = { latency: "LATENCY", origin: "ORIGIN", hops: "RELAYS", receipt: "RECEIPT" };
+const TEL_LABELS = { latency: "TRAVEL TIME", origin: "SENT FROM", hops: "STOPS", receipt: "ARRIVED" };
 const NEUTRAL_NOTES = [
-  "re-filed after rejection", "third filing this cycle",
-  "witness signature smudged", "forwarded from intake",
-  "annotated in the margins", "returned for correction ×1",
+  "coffee ring on the corner", "folded twice",
+  "handwriting hard to read", "written in pencil",
+  "one corner is torn", "smells faintly of smoke",
 ];
 const EXCUSE_NOTES = {
-  latency: "lobby terminal — filed on the house wire",
-  origin: "walked in — filed at the front gate",
-  hops: "hand-delivered — no relays crossed",
-  receipt: "priority queue — receipted on arrival",
+  latency: "sent from the lobby downstairs — a short trip",
+  origin: "walked in and handed it over at the front desk",
+  hops: "hand-delivered — no stops",
+  receipt: "desk clock runs slow — logged early",
 };
 const NIGHT_MEMO = [
-  "One of five isn't a person. Its postmark is odd.",
-  "People are odd too — but their paper says why.",
-  "Tonight it looks ordinary. Check the postmark against the story.",
-  "It's out of new numbers. Check its file. (F)",
+  "One of the five isn't a person. Something about how its paper got here is off.",
+  "People are odd too — but the clerk's note says why.",
+  "Tonight it looks ordinary. Check how it got here against its story.",
+  "It has run out of new numbers. Check its file. (F)",
   "Last night. Every trick, once more.",
 ];
 function fmtMin(mins) {
@@ -760,11 +775,47 @@ function latencyMs(v) {
  * teaches and the handbook prints. MUST mirror oddField's thresholds:
  * a field is odd iff it violates its TYPICAL line. */
 const TYPICAL = {
-  latency: "110ms or more",
-  origin: "an outside gate",
+  latency: "0.1 sec or more",
+  origin: "somewhere outside",
   hops: "2 or more",
-  receipt: "after it was filed",
+  receipt: "after it was sent",
 };
+/* ---------- plain-language display ----------
+ * The wire keeps its own language (3ms, GATE 0, rcvd +8h57m). The player
+ * never has to. clock() and say() translate values for every place a
+ * person reads them; the raw strings stay the data model. */
+const DAY_ZERO_MIN = 18 * 60; // the desk's day starts at 6:00 pm
+function clock(mins) {
+  const t = ((DAY_ZERO_MIN + mins) % 1440 + 1440) % 1440;
+  const h24 = Math.floor(t / 60), m = t % 60;
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${h24 < 12 ? "am" : "pm"}`;
+}
+const SAY_SUFFIX = { "resent ×2": "sent twice", "queued": "held in a queue" };
+function say(k, tel, filedMin) {
+  const v = tel[k];
+  if (k === "latency") {
+    const ms = latencyMs(v);
+    if (ms !== null) return `${(ms / 1000).toFixed(3)} sec`;
+    return v;
+  }
+  if (k === "origin") {
+    if (v === "GATE 0") return "inside this office";
+    let m = /^EXT GATE (\d+)$/.exec(v);
+    if (m) return `indoor line ${m[1]}`;
+    m = /^STREET BOX (\d+)$/.exec(v);
+    if (m) return `street mailbox ${m[1]}`;
+    return v;
+  }
+  if (k === "hops") return v === "0" ? "none" : v;
+  if (k === "receipt") {
+    const r = parseMin(v);
+    if (r === null) return v;
+    const parts = v.split(" · ").slice(1).map((s) => SAY_SUFFIX[s] || s);
+    return clock(r) + (parts.length ? " · " + parts.join(" · ") : "");
+  }
+  return v;
+}
 /* is this field's value something a person could not file? (odd, before
  * the excuse question — grounds() layers the note on top) */
 function oddField(k, tel, filedMin) {
@@ -804,29 +855,31 @@ function grounds(card, filedMin, tel, note, machineFile) {
   }
   return out;
 }
-/* the verdict names the logic that made the field a ground */
+/* the verdict names the logic that made the field a ground — plain words */
 function explainGround(k, card, filedMin, tel, note, machineFile) {
   const L = TEL_LABELS[k];
+  const v = say(k, tel, filedMin);
   if (k === "receipt") {
     const r = parseMin(tel.receipt);
     if (r !== null && r < filedMin)
-      return `${L} ${tel.receipt} — before it was filed`;
-    return `${L} ${tel.receipt} — unexplained`;
+      return `${L} ${v} — before it was sent (${clock(filedMin)})`;
+    return `${L} ${v} — the same minute it was sent`;
   }
   if (k === "origin") {
     const indoor = card && card.tags ? card.tags.setting === "indoor" : true;
     const street = /^STREET BOX/.test(tel.origin);
     const ext = /^EXT GATE/.test(tel.origin);
     if ((street && indoor) || (ext && !indoor))
-      return `${L} ${tel.origin} — on ${indoor ? "an indoor" : "an outdoor"} filing`;
-    return `${L} ${tel.origin} — unexplained`;
+      return `${L} ${v} — but the story is ${indoor ? "indoors" : "outdoors"}`;
+    return `${L} ${v} — it's locked at night`;
   }
   if (k === "latency") {
     const e = (machineFile || []).find((x) => x.tel && x.tel.latency === tel.latency);
-    if (e) return `${L} ${tel.latency} — it filed that on night ${e.night}`;
-    return `${L} ${tel.latency} — unexplained`;
+    if (e) return `${L} ${v} — exactly what it sent on night ${e.night}`;
+    return `${L} ${v} — nothing crosses the city that fast`;
   }
-  return `${L} ${tel[k]} — unexplained`;
+  if (k === "hops") return `${L} ${v} — paper doesn't get here on its own`;
+  return `${L} ${v} — unexplained`;
 }
 /* the machine changes faces: a seeded permutation of the five filers —
  * on night d it wears nightFaces[d]; the real owner never files. */
@@ -976,10 +1029,10 @@ const api = {
   makeRng, passes, check, nearMiss, failKeys,
   deal, extraRuling, auditSet, ATTR_KEYS,
   critText, riddleFor, pickCulprit, buildFinale, genDays,
-  FORGE_FIELDS, FORGE_TIERS, FORGE_SUSPICION, FORGE_GRANT, FORGE_CAP,
+  FORGE_FIELDS, FORGE_TIERS, FORGE_SUSPICION, FORGE_GRANT, FORGE_CAP, FORGE_SAY,
   FORGE_THRESHOLD, forgeSuspicion, forgeJudge,
   TEL_KEYS, TEL_LABELS, TYPICAL, NEUTRAL_NOTES, EXCUSE_NOTES, NIGHT_MEMO,
-  fmtMin, oddField, grounds, explainGround, nightFaces, dealPostmarks, dealFinalePostmarks,
+  fmtMin, clock, say, oddField, grounds, explainGround, nightFaces, dealPostmarks, dealFinalePostmarks,
 };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 if (root) root.NIGHT_SHIFT_LOGIC = api;

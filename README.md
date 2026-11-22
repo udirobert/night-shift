@@ -5,19 +5,20 @@ A five-night deduction thriller. One filing on every docket isn't human.
 Standalone spin-off of [Last Human Standing](https://lasthumanstanding.thisyearnofear.com) —
 same ARIA, same wire, no account needed.
 
-You work the night desk. Five filings a night, each stamped with a
-**postmark** — LATENCY · ORIGIN · RELAYS · RECEIPT. One filer is a machine
-wearing a human face, and the postmark is the only testimony: a human
-oddity has a reason written on the paper — the machine's doesn't.
+You work the night desk. Five papers come in a night, each carrying a
+strip that shows **how it got here** — TRAVEL TIME · SENT FROM · STOPS ·
+ARRIVED. One sender is a machine using a regular's name, and the trip is
+the only testimony: a human oddity has a reason written on the paper —
+the machine's doesn't.
 **Spot the machine. Three strikes and you're cut.**
 
 One docket, one machine — it wears a **different face every night** (a
-seeded permutation of the five filers, so today's faces are the same for
+seeded permutation of the five senders, so today's faces are the same for
 everyone who clocks in), and the face's real owner never files. Learning
 a face buys you nothing — **the tell changes class each night**: odd
 fields, then oddities that only count because the paper doesn't excuse
-them, then postmarks that read clean but contradict the card, then a
-latency repeated from its own file (**F** opens it). When the story week
+them, then trips that read clean but contradict the story, then a
+travel time repeated from its own file (**F** opens it). When the story week
 closes, the desk keeps running: **overtime** deals a fresh five-night
 run from a generated docket (new faces included) — a second daily
 ritual next to the week.
@@ -35,25 +36,25 @@ python3 -m http.server 8000
 
 ## How to play
 
-- **Night zero — the guided tour**: clocking in teaches the game on real
-  filings, one step at a time. First the desk card: five faces and the
-  premise — one of these filers is a machine that wants to be filed as
-  human, and only the postmark says otherwise. Then the machine's own
-  filing lands on the desk and a coach bubble walks it: the postmark
-  and what a person's *usually* looks like, then the clerk's note and
-  what it excuses, then the two off fields pulse — circle one, stamp
-  SUS. A second filing teaches the other half: a real person whose one
-  odd field the note explains — stamp HUMAN. Night zero forgives every
-  miss: no strikes, a wrong field re-asks, and waving the machine
-  through costs nothing. **Skip tour** sits on every tour screen and
-  lands you on night one; once the tour is done or skipped, future
-  clock-ins go straight to night one, and the handbook's **Replay the
-  tour** brings it back. That's every verb the week uses.
-- **The nights**: five filings, one at a time, each a paper card with a
-  taped clerk's note and a tear-off postmark stub. The only question is
-  *is this filer the machine?*
-  - **Circle, then stamp.** Click a postmark field (or press `1`–`4`) and
-    the grease pencil rings it; the button reads `SUS · ORIGIN`. Stamp
+- **Night zero — story, then the guided tour**: the first clock-in
+  opens with a five-panel story (the office, the senders, the stamps,
+  the thing that learned to write like a person) — skippable with
+  **Skip**, which lands on the coached first paper. Then a coach bubble
+  walks the real filing: how the paper got here and what a person's
+  *usually* looks like, then the clerk's note and what it explains,
+  then the off lines pulse — tap one, stamp SUS. A second paper teaches
+  the other half: a real person whose one strange line the note
+  explains — stamp HUMAN. Night zero forgives every miss: no strikes, a
+  wrong field re-asks, and waving the machine through costs nothing.
+  **Skip tour** sits inside the coach and skips the rest straight to
+  night one; once the tour is done or skipped, future clock-ins go
+  straight to night one — no story — and the handbook's **Replay the
+  tour** brings the whole thing back. That's every verb the week uses.
+- **The nights**: five papers, one at a time, each a paper card with a
+  taped clerk's note and a tear-off trip stub. The only question is
+  *did a person send this?*
+  - **Circle, then stamp.** Click a line on the strip (or press `1`–`4`)
+    and the grease pencil rings it; the button reads `SUS · SENT FROM`. Stamp
     **SUS** and that field is your accusation. Circle the real tell and
     the catch is yours (+100) — the ID photo unmasks: *IT WORE TESS*.
     Stamp SUS with nothing circled and the desk asks which field.
@@ -63,25 +64,26 @@ python3 -m http.server 8000
     wave the machine through (the desk circles what you missed in red).
     Accuse a person whose note explains the oddity and the card draws
     the line from the note to the field.
-- **The postmark** is four fields, printed at the foot of every card —
-  the same muted strip for every filer, nothing flagged. Night zero and
-  night one print the baseline beside each field — *usually* — and the
-  handbook keeps it permanently:
-  - `LATENCY` — round-trip time. Usually **110ms or more**: a person
-    waits on the wire.
-  - `ORIGIN` — usually **an outside gate**: `EXT GATE` is an indoor
-    line, `STREET BOX` is outdoors; `GATE 0` is inside this building.
-  - `RELAYS` — hops the filing crossed. Usually **2 or more**.
-  - `RECEIPT` — when the desk receipted it. Usually **after it was
-    filed**.
+- **How it got here** — four lines printed at the foot of every paper,
+  the same muted strip for every sender, nothing flagged. Night zero
+  and night one print the baseline beside each line — *usually* — and
+  the handbook keeps it permanently:
+  - `TRAVEL TIME` — how long it took to arrive. Usually **0.1 sec or
+    more**: a person waits on the wire.
+  - `SENT FROM` — usually **somewhere outside the office**: an indoor
+    line is indoors, a street mailbox is outdoors; inside this office
+    is locked at night.
+  - `STOPS` — how many stops it made on the way. Usually **2 or more**.
+  - `ARRIVED` — when the desk logged it. Usually **after it was
+    sent**.
   The rule of the desk: **every human oddity has an excuse written on
-  the paper** — the clerk's marginal note. An odd field *with* its
-  excuse is a person being human; an odd field *without* one is the
-  machine. Later nights ask more: a `STREET BOX` on an indoor card, a
-  receipt stamped before the filing existed, a latency the machine has
-  already filed — check its file (`F`). Everything else is texture:
-  the off-square drop, the quiet landing — every filer draws from the
-  same pool, so none of it is a signature.
+  the paper** — the clerk's marginal note. A strange line *with* its
+  excuse is a person being human; a strange line *without* one is the
+  machine. Later nights ask more: a street mailbox on an indoor story,
+  an arrival logged before the paper was sent, a travel time the
+  machine has already sent — check its file (`F`). Everything else is
+  texture: the off-square drop, the quiet landing — every sender draws
+  from the same pool, so none of it is a signature.
 - **Strikes**: the stakes are symmetric — a wrong stamp is a strike,
   either direction: wave the machine through (HUMAN) or accuse a person
   on grounds that fail (SUS). Three strikes cut you to jury duty at the
@@ -89,7 +91,7 @@ python3 -m http.server 8000
   `CUT`, and the rest of the week is yours to read from the other side.
   A flawless 5/5 night clears a strike.
 - **Finale — the machine's final proof**: after night five, the last
-  docket of the week arrives, postmarks and all. Sign the clause that
+  docket of the week arrives, trips and all. Sign the clause that
   cuts the machine — and only the machine — or sign the one that cuts
   only humans and lets it belong. On some dockets the winning clause is
   *stayed up late*: lateness is the one thing the machine can't fake.
@@ -107,14 +109,14 @@ python3 -m http.server 8000
   inversion — three generated nights where *you* file the proofs, playing
   the thing the week was hunting. Filing still asks you to satisfy the
   sealed rule, but then the night audit turns inside out: your own
-  postmark stub arrives fully machine-flavored, and a scarce **cover**
+  trip stub arrives fully machine-flavored, and a scarce **cover**
   budget patches each field through three tiers — machine, clean,
   lived-in. The wire judges suspicion against a tightening tolerance,
   and two tripwires catch the careless: a proof that fails the spec, and
   a stub polished *too* clean (overrehearsed reads as fake). Endings:
   **UNVERIFIED** (slipped all three — the wire filed you as human),
   **REVIEWED**, or **CAUGHT**.
-- Keys: `1`–`4` circle a postmark field · `H`/`S` or `←`/`→` stamp ·
+- Keys: `1`–`4` circle a line on the trip · `H`/`S` or `←`/`→` stamp ·
   `Enter` continue · `1`–`4` also select or patch (overtime/machine) · `Shift` focus loupe (overtime/machine)
   · `O` oath · `F` the machine's file · `M` audio · `?` the handbook.
 

@@ -435,14 +435,14 @@ function factRows(card, verdicts, pending) {
 
 // ---------- instruction lines ----------
 const INSTR = {
-  day: "Read ARIA's rulings and file a card that holds. One filing on tonight's docket is a machine — the postmark gives it away.",
+  day: "Read ARIA's rulings and file a card that holds. One filing on tonight's docket is a machine — how it got here gives it away.",
   day1: "What do ARIA's approvals share that her rejections lack? SHIFT narrows the desk to one column.",
   dayLiar: "Deduce ARIA's secret rule. SHIFT cycles the column. ⚠ One ruling below is a clerical error — tap it for +100.",
   verdict: "The rule is unsealed. Here's how your card did.",
-  night: "Five filings, one is a machine. Read the postmark against the paper — stamp it SUS, then point at the field that gives it away.",
-  coldCatch: "Circle the field that's wrong. Then stamp SUS.",
+  night: "Five papers, one is a machine’s. Read how it got here against its story — stamp it SUS, then point at what’s off.",
+  coldCatch: "Tap what's wrong. Then stamp SUS.",
   finale: "Its last filing. Cut it — or let it belong.",
-  forge: "The proof is filed. Now forge the postmark — 1–4 patch a field, Enter transmits. Unspent cover banks overnight.",
+  forge: "The proof is filed. Now forge its trip — 1–4 patch a line, Enter transmits. Unspent cover banks overnight.",
 };
 function setInstr(key) {
   const el = $("instr");
@@ -495,7 +495,7 @@ function paintMachineFile() {
   btn.classList.toggle("hidden", !n);
   btn.textContent = `its file · ${n}`;
   $("mfRows").innerHTML = (G.machineFile || []).map((e) =>
-    `<div class="mf-line">N${e.night} ${e.face}  <b class="mf-lat">${e.tel.latency}</b> · ${e.tel.origin.replace("EXT GATE", "EXT").replace("STREET BOX", "BOX")} · ×${e.tel.hops} · ${e.tel.receipt.replace(/^rcvd /, "")}</div>`).join("");
+    `<div class="mf-line">N${e.night} ${e.face} — travel <b class="mf-lat">${say("latency", e.tel, e.filedMin)}</b> · from ${say("origin", e.tel, e.filedMin)} · stops ${say("hops", e.tel, e.filedMin)} · arrived&nbsp;${say("receipt", e.tel, e.filedMin).replace(" · no delay", "")}</div>`).join("");
   panel.classList.toggle("hidden", !n);
   // on the wide desk the file lives in the side column — entries mean it
   // should be open unless the clerk shut it themselves
@@ -560,7 +560,7 @@ function hideTip() {
     // an armed field keeps its tip on the line
     const sub = G.auditSubs && G.auditSubs[G.auditIdx];
     hint.textContent = sub && sub.armed
-      ? `${TEL_LABEL[sub.armed]} ${sub.tel[sub.armed]} — ${TEL_TIPS[sub.armed]}` : "";
+      ? `${TEL_LABEL[sub.armed]} ${say(sub.armed, sub.tel, sub.filedMin)} — ${TEL_TIPS[sub.armed]}` : "";
   }
 }
 document.addEventListener("mouseover", (e) => {
@@ -625,7 +625,7 @@ const ARIA = {
   ],
   machineOpen: [
     "You are the machine tonight. File like you belong — the wire is reading.",
-    "Three proofs. Make them count. The postmark is already typing.",
+    "Three proofs. Make them count. It's already writing the paperwork.",
     "Sleep is for the filed. Tonight you file.",
   ],
   machineFiled: [
@@ -633,7 +633,7 @@ const ARIA = {
     "Proof accepted. Try not to be boring about it.",
   ],
   machineFlagged: [
-    "The postmark gave you away — the paper couldn't explain it.",
+    "The trip gave you away — the paper couldn't explain it.",
     "Close. The wire reads faster than you can lie.",
   ],
   survived: ["You lived.", "The ledger notes a survivor."],
@@ -981,9 +981,8 @@ function startDay(resume) {
 
 /* the shift brief: a memo card opens the day, the riddle types itself,
  * then the docket cascades onto the desk row by row. Any input skips it. */
-let briefOpen = false, briefTypeTimer = null, briefKind = "day";
+let briefOpen = false, briefTypeTimer = null;
 function stageDay(d) {
-  briefKind = "day";
   $("briefDay").textContent = d.dayLabel;
   $("briefTheme").textContent = `${d.emoji} ${d.theme}`;
   $("briefWho").textContent = "ARIA //";
@@ -1030,39 +1029,95 @@ function briefType(full) {
   }
   // no auto-dismiss: the player reads the beat at their own pace, then taps
 }
-function stageCold() {
-  briefKind = "cold";
-  G.coldBeat = 1;
-  $("briefDay").textContent = "NIGHT SHIFT · LAST HUMAN STANDING";
-  $("briefTheme").textContent = "🌙 NIGHT 0 — THE DESK";
-  $("briefWho").textContent = "ARIA //";
-  $("briefAria").textContent = ARIA.coldOpen[0];
-  $("briefSkip").classList.remove("hidden");
-  const faces = $("briefFaces");
-  faces.innerHTML = [G.culprit, ...humans()].map((f) =>
-    `<div class="brief-face"><img src="art/${f.toLowerCase()}.webp" alt="" loading="lazy" onerror="this.classList.add('missing')"><span>${f}</span></div>`).join("");
-  faces.classList.remove("hidden");
-  briefType("You're the night clerk. Five colleagues file overnight. One of them is a machine pretending to be a person. Catch it.");
+/* ---------- the story: five panels before the first coached paper ----------
+ * Replaces the old beat-1 brief. All existing art; each panel is one
+ * composition + one caption. Skip leaves the story only (lands on coach
+ * step 1); the coach's own Skip tour still skips the whole tour. */
+const STORY = [
+  { kind: "art", src: "art/room-night.webp",
+    cap: "The office closes at six. You come in after." },
+  { kind: "cards", srcs: ["card-bakery-dawn", "card-call-home-dusk", "card-best-friend-walk"],
+    cap: "All night, people send in small proof they're still out there. A bakery at dawn. A call home." },
+  { kind: "stamp", src: "art/card-bakery-dawn.webp",
+    cap: "Each one gets stamped HUMAN and goes on the record." },
+  { kind: "faces",
+    cap: "Lately, one of the senders isn't a person. It's learning to write like one." },
+  { kind: "desk",
+    cap: "You're the last one who reads them by hand. Find it." },
+];
+let storyOn = false, storyIdx = 0;
+function startStory() {
+  storyOn = true; storyIdx = 0;
+  $("story").classList.remove("hidden");
+  renderStory();
 }
+function renderStory() {
+  const p = STORY[storyIdx], el = $("storyPanel");
+  $("storyNext").classList.add("hidden");
+  if (p.kind === "art") {
+    el.innerHTML = `<img class="sp-art" src="${p.src}" alt="" loading="eager"
+      onerror="this.classList.add('missing')">`;
+  } else if (p.kind === "cards") {
+    el.innerHTML = `<div class="sp-cards">${p.srcs.map((s) =>
+      `<img src="art/${s}.webp" alt="" loading="eager" onerror="this.classList.add('missing')">`).join("")}</div>`;
+  } else if (p.kind === "stamp") {
+    el.innerHTML = `<div class="sp-card-wrap"><img src="${p.src}" alt="" loading="eager"
+      onerror="this.classList.add('missing')"><span class="sp-stamp">HUMAN</span></div>`;
+  } else if (p.kind === "faces") {
+    // all five senders get the glitch in turn — it never settles on one,
+    // so the panel can't hint at the culprit
+    const faces = [G.culprit, ...humans()];
+    el.innerHTML = `<div class="sp-faces">${faces.map((f, i) =>
+      `<div class="sp-face" style="--r:${(i - 2) * 1.2}deg"><img src="art/${f.toLowerCase()}.webp" alt="" loading="eager" onerror="this.classList.add('missing')"><span>${f}</span></div>`).join("")}</div>`;
+    const imgs = [...el.querySelectorAll(".sp-face img")];
+    if (calmMotion()) imgs.forEach((img) => img.classList.add("g"));
+    else imgs.forEach((img, i) => later(() => { if (storyOn) img.classList.add("g"); }, 500 + i * 900));
+  } else { // desk
+    el.innerHTML = `<img class="sp-art" src="art/room-night.webp" alt="" loading="eager"
+      onerror="this.classList.add('missing')"><div class="sp-deskcard"></div>`;
+    $("storyNext").classList.remove("hidden");
+  }
+  $("storyCap").textContent = p.cap;
+  $("storyDots").innerHTML = STORY.map((_, i) =>
+    `<span class="story-dot${i === storyIdx ? " on" : ""}"></span>`).join("");
+}
+function nextStory() {
+  if (!storyOn) return;
+  if (storyIdx >= STORY.length - 1) { endStory(); return; }
+  storyIdx++;
+  sfx.tick();
+  renderStory();
+}
+function endStory() {
+  if (!storyOn) return;
+  storyOn = false;
+  $("story").classList.add("hidden");
+  // the tour walks the real filing, one coach step at a time
+  G.coldBeat = 3;
+  $("caseBtns").classList.remove("hidden");
+  setInstr("coldCatch");
+  renderCase();
+  coachShow(1);
+  if (!calmMotion()) later(() => sfx.riffle(), 120);
+  persist();
+}
+function storyKey(e) {
+  if (!storyOn) return false;
+  if (e.key === "Enter" || e.key === " " || e.key === "ArrowRight") nextStory();
+  return true; // story swallows every key — nothing else fires through it
+}
+$("story").addEventListener("click", (e) => {
+  if (e.target.closest("#storySkip")) return;
+  nextStory();
+});
+$("storySkip").addEventListener("click", (e) => { e.stopPropagation(); endStory(); });
+$("storyNext").addEventListener("click", (e) => { e.stopPropagation(); endStory(); });
 function endBrief() {
   if (!briefOpen) return;
   briefOpen = false;
   clearInterval(briefTypeTimer);
   $("shiftBrief").classList.add("hidden");
   document.body.classList.remove("brief-up");
-  if (briefKind === "cold") {
-    // the tour walks the real filing, one coach step at a time
-    G.coldBeat = 3;
-    $("briefFaces").classList.add("hidden");
-    $("briefSkip").classList.add("hidden");
-    $("caseBtns").classList.remove("hidden");
-    setInstr("coldCatch");
-    renderCase();
-    coachShow(1);
-    if (!calmMotion()) later(() => sfx.riffle(), 120);
-    persist();
-    return;
-  }
   dayPhase.classList.add("dealt");
   const rows = $("docketBody").children.length;
   // a stamp tick per row as the ink lands, then the hand riffles in
@@ -1590,11 +1645,11 @@ function renderForge(resume) {
     const dCost = FORGE_TIER_COST[nxt] - FORGE_TIER_COST[tier];
     const afford = dCost <= 0 || forgeCost(G.forgeTiers) + dCost <= G.cover;
     if (!afford) b.classList.add("cant");
-    b.dataset.tip = `${TEL_LABEL[k]}: ${LOGIC.FORGE_TIERS[k][tier]} — click cycles machine → clean → lived-in` +
+    b.dataset.tip = `${TEL_LABEL[k]}: ${LOGIC.FORGE_SAY[LOGIC.FORGE_TIERS[k][tier]] || LOGIC.FORGE_TIERS[k][tier]} — click cycles machine → clean → lived-in` +
       (dCost > 0 ? ` · next step costs ${dCost} cover` : "") +
       (afford ? "" : " — not enough cover");
     b.innerHTML = `<span class="ff-label">${TEL_LABEL[k]}</span>
-      <span class="ff-val">${LOGIC.FORGE_TIERS[k][tier]}</span>
+      <span class="ff-val">${LOGIC.FORGE_SAY[LOGIC.FORGE_TIERS[k][tier]] || LOGIC.FORGE_TIERS[k][tier]}</span>
       <span class="ff-tier"><i class="ff-glyph">${["●", "◐", "○"][tier]}</i> ${FORGE_TIER_NAME[tier]}</span>`;
     // the stub inks itself in reading order — paperwork arriving, not appearing
     b.style.animation = "forgein .38s cubic-bezier(.2,.9,.3,1) backwards";
@@ -1752,13 +1807,20 @@ function joinNames(a) {
  * human could file — and after night two it wears human clothing, with
  * one residual tell. Nothing is hidden, nothing is flagged for you. */
 const TEL_KEYS = ["latency", "origin", "hops", "receipt"];
-const TEL_LABEL = { latency: "LATENCY", origin: "ORIGIN", hops: "RELAYS", receipt: "RECEIPT" };
+const TEL_LABEL = LOGIC.TEL_LABELS;
+const say = LOGIC.say;
+/* finale ledger timestamps are "+2h05m" after the docket posts — show
+   them as a clock time like every other arrival */
+const sayTs = (ts) => {
+  const m = /^\+(\d+)h(\d+)m$/.exec(ts || "");
+  return m ? LOGIC.clock(+m[1] * 60 + +m[2]) : ts;
+};
 /* what the wire sees in each field — the tooltip teaches the tell */
 const TEL_TIPS = {
-  latency: "round-trip — a person waits 110ms+ on the wire; a machine answers in tens",
-  origin: "EXT GATE = an indoor line · STREET BOX = outdoors · GATE 0 = inside this building",
-  hops: "relays the filing crossed — a person's paper crosses 2–5",
-  receipt: "when the desk receipted it — after the filing, or it never travelled",
+  latency: "how long the paper took to arrive — people wait on the wire",
+  origin: "where it was sent from",
+  hops: "how many stops it made on the way",
+  receipt: "when the desk logged it",
 };
 /* paperwork texture — a clerk's note drawn from one shared pool. A remote
  * filing is a red herring, not a fingerprint; the postmark testifies. */
@@ -1965,7 +2027,7 @@ function startColdOpen() {
     return;
   }
   G.coldBeat = 1;
-  stageCold();
+  startStory();
   persist();
 }
 
@@ -2006,10 +2068,12 @@ function tourDone(set) {
   } catch { return false; } /* no storage — the tour just replays */
 }
 const COACH_STEPS = {
-  1: { anchor: ".case-stub", text: "The postmark shows how the paper travelled. \u201CUsually\u201D is what a person's looks like.", live: false },
-  2: { anchor: ".note-slip", text: "The clerk's note. When a person's postmark is odd, the reason is written here.", live: false },
-  3: { anchor: ".case-stub", text: "Two fields are off and the note doesn't explain them. Tap one, then stamp SUS.", live: true, pulseTells: true },
-  4: { anchor: ".note-slip", text: "Odd — but the note says why. That's a person. Stamp HUMAN.", live: true, link: "hops" },
+  1: { anchor: ".case-stub", text: "This strip shows how the paper got here. The small grey line is what's normal for a person.", live: false },
+  2: { anchor: ".note-slip", text: "The clerk's note. If something about a person's trip is strange, the reason is written here.", live: false },
+  3: { anchor: ".case-stub", live: true, pulseTells: true,
+       text: (sub) => `Travel time ${say("latency", sub.tel, sub.filedMin)}, sent from ${say("origin", sub.tel, sub.filedMin)} — which is locked. No person did that. Tap either line, then stamp SUS.` },
+  4: { anchor: ".note-slip", live: true, link: "hops",
+       text: "No stops on the way is strange — but the note says it was hand-delivered. That's a person. Stamp HUMAN." },
 };
 let tourStep = 0;
 let coachEl = null;
@@ -2040,7 +2104,10 @@ function coachShow(step) {
   coachEl = document.createElement("div");
   coachEl.className = "coach";
   coachEl.id = "coach";
-  coachEl.innerHTML = `<p>${COACH_STEPS[step].text}</p>
+  const sub = G.auditSubs[G.auditIdx];
+  const coachText = typeof COACH_STEPS[step].text === "function"
+    ? COACH_STEPS[step].text(sub) : COACH_STEPS[step].text;
+  coachEl.innerHTML = `<p>${coachText}</p>
     <div class="coach-btns">
       ${!COACH_STEPS[step].live ? '<button type="button" class="coach-next">Next →</button>' : ""}
       <button type="button" class="coach-skip">Skip tour</button>
@@ -2107,17 +2174,15 @@ function coachHide() {
 function skipTour() {
   tourDone(true);
   coachHide();
+  if (storyOn) { storyOn = false; $("story").classList.add("hidden"); }
   if (briefOpen) {
     briefOpen = false;
     clearInterval(briefTypeTimer);
     $("shiftBrief").classList.add("hidden");
     document.body.classList.remove("brief-up");
-    $("briefFaces").classList.add("hidden");
-    $("briefSkip").classList.add("hidden");
   }
   startAudit();
 }
-$("briefSkip").addEventListener("click", (e) => { e.stopPropagation(); skipTour(); });
 addEventListener("resize", () => { if (tourStep) positionCoach(tourStep); });
 
 function renderRuleChips(rule, amended) {
@@ -2195,7 +2260,7 @@ function flagField(k) {
     later(() => thunderRoll(0.14), 550); // and the sky, faintly, agrees
     const priorTells = G.tellHistory.filter((t) => t === k).length;
     G.tellHistory.push(k);
-    wire(`⚡ caught · ${TEL_LABEL[k]} ${sub.tel[k]} · +100${priorTells ? " · again" : ""}`);
+    wire(`⚡ caught · ${TEL_LABEL[k]} ${say(k, sub.tel, sub.filedMin)} · +100${priorTells ? " · again" : ""}`);
     ariaSay(G.coldOpen ? ARIA.coldCompare : [
       "You caught something my code couldn't see.",
       "ANOMALY QUARANTINED. Well read."
@@ -2322,12 +2387,12 @@ function renderCase() {
       if (sub.pick === "SUS" && sub.correct) {
         reason = `⚡ ${LOGIC.explainGround(sub.flagKey, sub.card, sub.filedMin, sub.tel, sub.note, G.machineFile)} · +100`;
       } else if (sub.correct) {
-        reason = `✔ human — the postmark reads like a person's`;
+        reason = `✔ human — the trip reads like a person's`;
       } else if (sub.pick === "SUS") {
         // a hunch answers the accusation itself: the field you named read
         // within the norm — a bad stamp, not a bad filing
         reason = sub.flagKey
-          ? `✗ ${TEL_LABEL[sub.flagKey]} ${sub.tel[sub.flagKey]} is ordinary. No catch.`
+          ? `✗ ${TEL_LABEL[sub.flagKey]} ${say(sub.flagKey, sub.tel, sub.filedMin)} is ordinary. No catch.`
           : "✗ no grounds — a hunch, not a catch";
       } else {
         reason = G.coldOpen
@@ -2339,8 +2404,8 @@ function renderCase() {
         ? `+${sub.earned} pts${contested ? " · double pay" : ""}`
         : sub.flagKey
           ? (sub.note === EXCUSE_NOTES[sub.flagKey] && LOGIC.oddField(sub.flagKey, sub.tel, sub.filedMin)
-              ? `✗ ${TEL_LABEL[sub.flagKey]} ${sub.tel[sub.flagKey]} — the note explains it. A person.${struck(sub)}`
-              : `✗ ${TEL_LABEL[sub.flagKey]} ${sub.tel[sub.flagKey]} is ordinary. A person.${struck(sub)}`)
+              ? `✗ ${TEL_LABEL[sub.flagKey]} ${say(sub.flagKey, sub.tel, sub.filedMin)} — the note explains it. A person.${struck(sub)}`
+              : `✗ ${TEL_LABEL[sub.flagKey]} ${say(sub.flagKey, sub.tel, sub.filedMin)} is ordinary. A person.${struck(sub)}`)
           : `✗ No grounds. A person.${struck(sub)}`;
     }
   }
@@ -2381,14 +2446,14 @@ function renderCase() {
       <div class="note-slip case-note read-3${sub.pick === "SUS" && !sub.correct && !sub.pendingFlag && sub.flagKey && sub.note === EXCUSE_NOTES[sub.flagKey] && LOGIC.oddField(sub.flagKey, sub.tel, sub.filedMin) ? " noted" : ""}">✎ ${sub.note}</div>
       <div class="fact-chips">${ATTR_KEYS.map((k) => `<span class="fchip">${factCell(k, sub.card.tags[k])}</span>`).join("<i>·</i>")}</div>
       <div class="case-stub read-2">
-        <div class="stub-head">POSTMARK · filed ${sub.filed}</div>
+        <div class="stub-head">HOW IT GOT HERE · sent ${LOGIC.clock(sub.filedMin)}</div>
         <div class="stub-grid">
         ${TEL_KEYS.map((k, ti) =>
-          `<div class="tel-row${sub.armed === k ? " armed" : ""}${sub.flagKey === k && !sub.correct && sub.note === EXCUSE_NOTES[k] && LOGIC.oddField(k, sub.tel, sub.filedMin) ? " explained" : ""}" data-tel="${k}" data-tip="${TEL_LABEL[k]} ${sub.tel[k]} — ${TEL_TIPS[k]}" style="--i:${ti}"${!sub.pick || sub.pendingFlag ? ' tabindex="0" role="button"' : ""}><span>${TEL_LABEL[k]}${showUsually ? `<i class="tel-us">usually ${LOGIC.TYPICAL[k]}</i>` : ""}</span><span class="tel-val${sub.flagKey === k && sub.correct ? " hit" : ""}">${sub.tel[k]}</span></div>`).join("")}
+          `<div class="tel-row${sub.armed === k ? " armed" : ""}${sub.flagKey === k && !sub.correct && sub.note === EXCUSE_NOTES[k] && LOGIC.oddField(k, sub.tel, sub.filedMin) ? " explained" : ""}" data-tel="${k}" data-tip="${TEL_LABEL[k]} ${say(k, sub.tel, sub.filedMin)} — ${TEL_TIPS[k]}" style="--i:${ti}"${!sub.pick || sub.pendingFlag ? ' tabindex="0" role="button"' : ""}><div class="tel-line"><span>${TEL_LABEL[k]}</span><span class="tel-val${sub.flagKey === k && sub.correct ? " hit" : ""}">${say(k, sub.tel, sub.filedMin)}</span></div>${showUsually ? `<i class="tel-us">usually ${LOGIC.TYPICAL[k]}</i>` : ""}</div>`).join("")}
         </div>
       </div>
       ${sub.pendingFlag ? `<div class="flag-row">
-        <span class="flag-q">you stamped SUS — which field reads wrong?</span>
+        <span class="flag-q">you stamped SUS — which line reads wrong?</span>
         ${TEL_KEYS.map((k, i) =>
           `<button class="flag-f" type="button" data-k="${k}" style="--i:${i}">${TEL_LABEL[k]}</button>`).join("")}
         <button class="flag-f none" type="button" data-k="" style="--i:${TEL_KEYS.length}">no grounds</button>
@@ -2405,7 +2470,7 @@ function renderCase() {
   $("susBtn").innerHTML = `<span class="stamp-ring s" aria-hidden="true">S</span> SUS${sub.armed ? ` · ${TEL_LABEL[sub.armed]}` : ""}`;
   const ah = $("auditHint");
   if (ah && !tipFor) ah.textContent = sub.armed
-    ? `${TEL_LABEL[sub.armed]} ${sub.tel[sub.armed]} — ${TEL_TIPS[sub.armed]}` : "";
+    ? `${TEL_LABEL[sub.armed]} ${say(sub.armed, sub.tel, sub.filedMin)} — ${TEL_TIPS[sub.armed]}` : "";
   el.querySelectorAll(".tel-row").forEach((row) => {
     const k = row.dataset.tel;
     row.addEventListener("click", (e) => { e.stopPropagation(); armField(k); });
@@ -2453,7 +2518,7 @@ function armNudge() {
     if (s === sub && !s.pick && !s.armed && !G.tourLock) {
       s.nudged = true;
       const h = $("auditHint");
-      if (h) h.textContent = `Compare each field with "usually". Tap the one that's off.`;
+      if (h) h.textContent = `Compare each line with "usually". Tap the one that's off.`;
     }
   }, NUDGE_MS);
 }
@@ -2931,8 +2996,8 @@ function buildFinale() {
     tr.innerHTML =
       `<td class="c-file"><span class="glyph">${row.glyph}</span><span class="name">${row.name}</span></td>` +
       ATTR_KEYS.map((k) => `<td class="c-fact">${factCell(k, row.tags[k])}</td>`).join("") +
-      `<td class="c-filer">${row.filer}</td><td class="c-ts">${row.ts}</td>` +
-      `<td class="c-pkt"><span class="pk">LAT ${row.tel.latency}</span> <span class="pk">${row.tel.origin}</span> <span class="pk">RLY ${row.tel.hops}</span> <span class="pk">${row.tel.receipt}</span></td>` +
+      `<td class="c-filer">${row.filer}</td><td class="c-ts">${sayTs(row.ts)}</td>` +
+      `<td class="c-pkt"><span class="pk">${say("latency", row.tel, row.filedMin)}</span> <span class="pk">${say("origin", row.tel, row.filedMin)}</span> <span class="pk">${say("hops", row.tel, row.filedMin)}</span> <span class="pk">${say("receipt", row.tel, row.filedMin)}</span></td>` +
       `<td class="c-cut"></td>`;
     tb.appendChild(tr);
   }
@@ -3005,8 +3070,8 @@ function signRule() {
   if (botCut && humanCut.length === 0) {
     title = G.status === "player" ? "LAST HUMAN STANDING" : "DAWN";
     line = G.valeCaught > 0
-      ? `You read the postmark all week, and it finally held. You cut ${G.culprit} and only ${G.culprit}. The docket is human again — and quiet.`
-      : `You cut ${G.culprit} and only ${G.culprit}. The postmark said what the paper never could. The docket is human again — and quiet.`;
+      ? `You read how every paper got here all week, and it finally held. You cut ${G.culprit} and only ${G.culprit}. The docket is human again — and quiet.`
+      : `You cut ${G.culprit} and only ${G.culprit}. The trip said what the paper never could. The docket is human again — and quiet.`;
   } else if (botCut) {
     title = "COLLATERAL";
     line = `${G.culprit} is gone. So are ${humanCut.join(", ")}. The clause didn't care who was on the other side of the cut.`;
@@ -3015,7 +3080,7 @@ function signRule() {
     const crow = G.finaleRows.find((r) => r.filer === G.culprit);
     const why = crow && crow.tel && crow.tel.tells && crow.tel.tells[0]
       ? LOGIC.explainGround(crow.tel.tells[0], crow, crow.filedMin, crow.tel, crow.note, [])
-      : "the postmark told on it";
+      : "the trip told on it";
     line = `You let it belong. ${why} — it was right there on the paper, and the clause that should have cut it cut only ` +
       `${joinNames(humanCut)}. Tomorrow the desk is its, and you'll sign what it files.`;
   }
@@ -3079,7 +3144,7 @@ function shareText(title) {
   return `NIGHT SHIFT ${label}${G.mode === "ot" ? " · OVERTIME" : G.mode === "machine" ? " · THE MACHINE" : ""} — ${title}\n${costume}${rows}\nscore ${G.score}${career}\n${G.mode === "machine"
     ? (G.forgeFlags === 0 ? "I fooled the wire. All three nights." : "I almost fooled the wire. You?")
     : G.mode === "week"
-      ? "I read the postmark. The machine slipped. You?"
+      ? "I read how it got here. The machine slipped. You?"
       : "I out-read the machine. You?"}`;
 }
 
@@ -3136,19 +3201,19 @@ function endGame() {
       ? `${DAYS.length} nights worked · ${G.strikes} strikes · score ${G.score} · audits ${acc}%`
       : `${survived} days survived · ${G.strikes} strikes · score ${G.score} · audits ${acc}%`;
   const lines = [];
-  if (G.finaleTitle) lines.push(`${G.culprit} filed the last proof ${G.finaleRows.find((r) => r.filer === G.culprit)?.ts || "+0h00m"} after the docket posted.`);
+  if (G.finaleTitle) lines.push(`${G.culprit} filed the last proof at ${sayTs(G.finaleRows.find((r) => r.filer === G.culprit)?.ts)}.`);
   if (G.valeCaught) lines.push(
-    `You flagged the machine on ${G.valeCaught} night${G.valeCaught > 1 ? "s" : ""} — the postmark never lies.`);
+    `You flagged the machine on ${G.valeCaught} night${G.valeCaught > 1 ? "s" : ""} — the trip never lies.`);
   if (G.valeEscapes) lines.push(
     `It walked through your stamp ${G.valeEscapes} time${G.valeEscapes > 1 ? "s" : ""} — and the marks landed on your counter, not its file.`);
   if (G.finaleLine) lines.push(G.finaleLine);
-  if (G.mode !== "machine" && G.culprit) lines.push(`The machine wore a different face every night — its file kept every postmark.`);
+  if (G.mode !== "machine" && G.culprit) lines.push(`The machine wore a different face every night — its file kept every trip it made.`);
   else if (G.mode === "machine") lines.push(G.forgeFlags === 0
-    ? "Three nights of forged postmarks. The wire filed you as human — the best kind of nobody."
+    ? "Three nights of forged trips. The wire filed you as human — the best kind of nobody."
     : `${G.forgeFlags} of 3 nights flagged — the wire kept a copy of every stub.`);
   else lines.push(title === "LAST HUMAN STANDING" || title === "OVERTIME CLEARED"
     ? (G.mode === "ot" ? "Five generated shifts. You read every one of them."
-       : G.mode === "week" ? "Five nights. You read every postmark."
+       : G.mode === "week" ? "Five nights. You read how every paper got here."
        : "Five rules. You read every one of them.")
     : `Cut on night ${G.elimDay || "?"} — the desk made you: ${JURY_TITLES[titleIdx]}.`);
   if (G.status === "juror" && G.finaleTitle) lines.push(`Night-shift title: ${JURY_TITLES[titleIdx]}.`);
@@ -3316,7 +3381,8 @@ document.addEventListener("keydown", (e) => {
   }
   if (gameEl.classList.contains("hidden")) return;
 
-  // a live brief swallows every key — it dismisses, nothing else fires
+  // a live story or brief swallows every key — it dismisses, nothing else fires
+  if (storyKey(e)) return;
   if (briefOpen) { endBrief(); return; }
 
   // SHIFT is the day verb: it walks the loupe across the fact columns.
@@ -3487,15 +3553,15 @@ function attractNightStep() {
   $("attractDesk").innerHTML = `<div class="at-card">
     <div class="at-head"><span class="at-glyph">${c.glyph}</span>
       <span class="at-name">${c.name}</span>
-      <span class="at-filer">FILER · ${v.filer}</span></div>
+      <span class="at-filer">FROM · ${v.filer}</span></div>
     <div class="at-tel">
-      <span>LATENCY</span><b>${v.tel.latency}</b>
-      <span>ORIGIN</span><b>${v.tel.origin}</b>
-      <span>RELAYS</span><b>×${v.tel.hops}</b>
-      <span>RECEIPT</span><b>${v.tel.receipt}</b>
+      <span>${TEL_LABEL.latency}</span><b>${say("latency", v.tel)}</b>
+      <span>${TEL_LABEL.origin}</span><b>${say("origin", v.tel)}</b>
+      <span>${TEL_LABEL.hops}</span><b>${say("hops", v.tel)}</b>
+      <span>${TEL_LABEL.receipt}</span><b>${say("receipt", v.tel)}</b>
     </div>
     <div class="at-stamp ${v.pick === "SUS" ? "sus" : "human"}">${v.pick}</div>
-    <div class="at-wire">N1·${v.pick === "SUS" ? "anomaly quarantined · +100" : "stamp upheld · +50"}</div>
+    <div class="at-wire">N1·${v.pick === "SUS" ? "it was caught · +100" : "it held · +50"}</div>
   </div>`;
 }
 /* THE NIGHT act, looping: the spine IS the game, so the reel never shows
@@ -3603,7 +3669,7 @@ setTimeout(() => {
  * repaints the exact desk: phase, day, docket, and the night's stamped
  * cases. Pay and strikes post exactly once; the apply/paint splits above
  * guarantee a resumed desk never counts anything twice. */
-const SAVE_KEY = "night-shift-save-v1";
+const SAVE_KEY = "night-shift-save-v2";
 const PREF_KEY = "night-shift-prefs-v1";
 
 function persist() {
