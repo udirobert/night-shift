@@ -115,7 +115,7 @@ clickCard();
 await sleep(500);
 
 /* 4 — the machine: SUS + a REAL tell = the catch (+100) */
-window.eval(`G.auditIdx = ${botIdx}; G.auditLocked = false;`);
+window.eval(`clearLater(); G.auditIdx = ${botIdx}; G.auditLocked = false;`);
 window.eval(`const b = G.auditSubs[${botIdx}]; b.pick = null; b.correct = null; b.earned = 0; b.pendingFlag = false; b.flagKey = null; b.flagTried = false;`);
 window.renderCase();
 await sleep(200);
@@ -131,7 +131,7 @@ ok("vale caught logged", G().valeCaught === 1);
 ok("no strike for the catch", G().strikes === strikes0 + 2);
 
 /* 5 — a hunch aimed at the machine (wrong field) is no strike */
-window.eval(`G.auditIdx = ${botIdx}; G.auditLocked = false;`);
+window.eval(`clearLater(); G.auditIdx = ${botIdx}; G.auditLocked = false;`);
 window.eval(`const b = G.auditSubs[${botIdx}]; b.pick = null; b.correct = null; b.earned = 0; b.pendingFlag = false; b.flagKey = null; b.flagTried = false;`);
 window.renderCase();
 await sleep(200);
@@ -144,10 +144,11 @@ window.flagField(wrongField);
 await sleep(400);
 ok("hunch on the machine is a wrong stamp", G().auditSubs[botIdx].correct === false);
 ok("hunch does not strike the clerk", G().strikes === strikesBeforeHunch);
+console.log("   dbg5", window.eval(`JSON.stringify({idx:G.auditIdx, bot:${botIdx}, pick:G.auditSubs[${botIdx}].pick, pf:G.auditSubs[${botIdx}].pendingFlag, corr:G.auditSubs[${botIdx}].correct, armed:G.auditSubs[${botIdx}].armed, locked:G.auditLocked, strikes:G.strikes})`));
 
 /* 6 — point at it: circle the real tell, then SUS resolves it in one go */
 const resetSub = (i) => window.eval(
-  `const s = G.auditSubs[${i}]; s.pick=null; s.correct=null; s.earned=0; s.pendingFlag=false; s.flagKey=null; s.flagTried=false; s.armed=null; G.auditIdx=${i}; G.auditLocked=false;`);
+  `clearLater(); const s = G.auditSubs[${i}]; s.pick=null; s.correct=null; s.earned=0; s.pendingFlag=false; s.flagKey=null; s.flagTried=false; s.armed=null; G.auditIdx=${i}; G.auditLocked=false;`);
 const vc0 = G().valeCaught;
 resetSub(botIdx);
 window.renderCase();
@@ -198,11 +199,12 @@ for (let g = 0; g < 6 && window.eval("briefOpen"); g++) { // queued briefs eat o
 }
 const KEYS = ["latency", "origin", "hops", "receipt"];
 for (let i = 0; i < 4; i++) {
-  window.eval(`G.auditSubs[0].armed = null; if (typeof endBrief === "function" && briefOpen) endBrief();`);
+  window.eval(`clearLater(); G.auditIdx = 0; G.auditSubs[0].armed = null; if (typeof endBrief === "function" && briefOpen) endBrief();`);
   await sleep(160); // a live brief swallows one key — let the dismiss land first
   d.dispatchEvent(new window.KeyboardEvent("keydown", { key: String(i + 1), bubbles: true }));
   await sleep(120);
   ok(`key ${i + 1} circles ${KEYS[i]}`, G().auditSubs[0].armed === KEYS[i]);
+  if (G().auditSubs[0].armed !== KEYS[i]) console.log("   dbg", window.eval(`JSON.stringify({storyOn: typeof storyOn !== "undefined" && storyOn, briefOpen: typeof briefOpen !== "undefined" && briefOpen, locked: G.auditLocked, idx: G.auditIdx, pick: G.auditSubs[G.auditIdx] && G.auditSubs[G.auditIdx].pick, pf: G.auditSubs[G.auditIdx] && G.auditSubs[G.auditIdx].pendingFlag, amending: G.amending, tourLock: G.tourLock, dossierHidden: $("dossier").classList.contains("hidden"), gameHidden: $("game").classList.contains("hidden")})`));
 }
 
 /* — no pre-decision leaks: before a stamp resolves, the machine's card

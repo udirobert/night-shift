@@ -111,8 +111,17 @@ body[data-phase="finale"] #stage .bg-room-aria { opacity: 1; }
 /* the week's endings paint the last room: gold dawn if you earned it,
    the blue automated office if you didn't */
 body[data-phase="dawn"] #stage .bg-dawn { opacity: 1; }
-body[data-phase="dawn"][data-end="cut"] #stage .bg-dawn { opacity: 0; }
-body[data-phase="dawn"][data-end="cut"] #stage .bg-dawn-automated { opacity: 1; }
+body[data-phase="dawn"][data-end="cut"] #stage .bg-dawn,
+body[data-phase="dawn"][data-end="collateral"] #stage .bg-dawn,
+body[data-phase="dawn"][data-end="belong"] #stage .bg-dawn { opacity: 0; }
+body[data-phase="dawn"][data-end="cut"] #stage .bg-dawn-automated,
+body[data-phase="dawn"][data-end="collateral"] #stage .bg-dawn-automated,
+body[data-phase="dawn"][data-end="belong"] #stage .bg-dawn-automated { opacity: 1; }
+/* the new ending plates layer over their painted fallback; a missing
+   file hides itself (onerror -> .missing) and the room shows through */
+body[data-phase="dawn"][data-end="collateral"] #stage .bg-end-collateral:not(.missing),
+body[data-phase="dawn"][data-end="belong"] #stage .bg-end-belong:not(.missing),
+body[data-phase="dawn"][data-end="cut"] #stage .bg-end-cut:not(.missing) { opacity: 1; }
 /* the painted room sits behind the paper, never over it — a soft scrim
    keeps the frame's text panels readable on the brightest paintings */
 #stage .stage-art::after {
@@ -884,6 +893,21 @@ body[data-shift="night"] #docket td.c-stamp.sus { box-shadow: inset 0 0 0 999px 
 .case-photo { position: relative; margin: 0 0 8px; }
 .case-photo img.missing { display: none; }
 .case-photo:not(:has(img:not(.missing))) { display: none; }
+/* the P.S. rides the lower vignette — it covers only the painting,
+   never a verdict line, a stub row, or the stamp */
+.case-photo.has-ps { position: relative; }
+.case-photo.has-ps:not(:has(img:not(.missing))) { display: block; }
+.case-photo.has-ps:not(:has(img:not(.missing))) .ps-slip { position: static; }
+.ps-slip {
+  position: absolute; left: 8px; right: 8px; bottom: 5px; z-index: 3;
+  display: block; padding: 4px 9px 5px;
+  background: rgba(243, 234, 208, .93);
+  border: 1px solid rgba(120, 96, 60, .35); border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(20, 14, 6, .35);
+  font: italic 12px/1.3 Georgia, "Times New Roman", serif;
+  color: #3a2f22; text-align: left;
+}
+@media (max-width: 700px) { .ps-slip { font-size: 11px; padding: 3px 7px 4px; } }
 .case-photo .case-vignette {
   display: block; width: 100%; height: 102px;
   object-fit: cover; object-position: 50% 42%;
@@ -3388,6 +3412,7 @@ body[data-phase="finale"] .finale-lead { color: var(--ink, #d8d2c4); }
 }
 /* keep the photo clear of the name on narrow cards */
 #caseCard .case-photo { position: static; }
+#caseCard .case-photo.has-ps { position: relative; }
 /* the ink stamp moves left so both stamp and photo stay readable */
 body[data-phase="audit"] .case-card .case-stamp { right: 66px; }
 @media (max-width: 639px) {

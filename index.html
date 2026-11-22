@@ -114,6 +114,14 @@
       onerror="this.classList.add('missing');if(this.parentNode.querySelectorAll('img:not(.missing)').length===0)this.parentNode.classList.add('no-art')" />
     <img class="bg-art bg-dawn-automated" src="art/dawn-automated.webp" alt=""
       onerror="this.classList.add('missing');if(this.parentNode.querySelectorAll('img:not(.missing)').length===0)this.parentNode.classList.add('no-art')" />
+    <!-- ending plates: each lands over its data-end; missing files hide
+         themselves and the painted dawn behind them stays -->
+    <img class="bg-art bg-end-collateral" src="art/end-collateral.webp" alt=""
+      onerror="this.classList.add('missing')" />
+    <img class="bg-art bg-end-belong" src="art/end-belong.webp" alt=""
+      onerror="this.classList.add('missing')" />
+    <img class="bg-art bg-end-cut" src="art/end-cut.webp" alt=""
+      onerror="this.classList.add('missing')" />
     <!-- dust in the lamplight: the painted rooms are stills, so the air
          itself carries the only motion between stamps. Faint on purpose —
          atmosphere, never information. -->
@@ -140,6 +148,9 @@
   <div class="hb-card">
     <div class="hb-head"><b>CLERK'S HANDBOOK</b><button id="hbClose" aria-label="Close handbook">✕</button></div>
     <div class="hb-cols">
+      <section><h4>THE REGISTER</h4>
+        <p>To stay on the Register of the Living — your pay, your vote, your front door opening — you send in one small proof each night that you were out in the world. Machines sort the papers by day. The law still requires one human witness, so at night one clerk reads them by hand.</p>
+      </section>
       <section id="hbRead"><h4>READING A PAPER</h4>
         <p>A person's trip is usually:</p>
         <table class="hb-table">
@@ -258,7 +269,7 @@
       <rect x="0" y="0" width="640" height="300" filter="url(#paperGrain)" opacity=".06"/>
     </svg>
     </div>
-    <p class="sub">You took the night job at the records office. Nobody mentioned the machine.</p>
+    <p class="sub">You took the night job at the Register. Nobody mentioned the machine.</p>
     <p class="sub2">Read five papers a night. Stamp the one a machine sent.</p>
     <!-- first read: the verb pair. second: resume/career. third: alternates.
          The how-to lives in the night-zero tour — the title says one thing. -->

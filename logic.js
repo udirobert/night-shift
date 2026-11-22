@@ -1025,6 +1025,71 @@ function dealFinalePostmarks(rows, rng = Math.random) {
   });
 }
 
+/* ---------- the P.S. on the back (story bible, approved build spec) ----------
+ * Flavour only: a P.S. is never evidence and never needed to solve a
+ * paper. It appears only after a stamp lands. */
+const PS = {
+  MARA: ["New boy burned the first tray. Kept him anyway.",
+    "Flour is up again. I'm not raising the bread.",
+    "Double shift tomorrow. If I'm late with this, I'm sorry.",
+    "He got the tray right today. I didn't say anything. He knew.",
+    "Saving you a loaf. I don't know your name."],
+  OKO: ["Nothing biting. Stayed anyway.",
+    "The harbour light is out again. Nobody fixes what machines don't use.",
+    "Weather coming. Going out once more before it does.",
+    "My father's boat. I still say 'his'.",
+    "If the pier goes, I'll send from wherever the water is."],
+  JUN: ["Dad ate two bowls. Writing it down so I remember.",
+    "He called me by my mother's name. I answered.",
+    "Surgery is Thursday. I'll send from the ward if they let me.",
+    "He asked who reads these. I said somebody does.",
+    "He's home. Soup tonight. Thank you for reading."],
+  TESS: ["Walked to the river and back. Forty years, same bench.",
+    "Is it Tuesday? I've written Tuesday.",
+    "The door took three tries tonight. It knows me. It's only slow.",
+    "Someone waved from the bakery. I waved back in case it was for me.",
+    "If I forget to send, it isn't because I've gone. Check the bench."],
+  VALE: ["Third floor light is still on. I leave it.",
+    "You have my old chair. The left arm is loose.",
+    "I read these for nineteen years. Then they asked me to send one.",
+    "It isn't hard to tell us apart. It's hard to want to.",
+    "Whatever you sign tomorrow, sign it as yourself."],
+};
+/* the machine writes in someone's name — a little too tidy */
+const PS_MACHINE = {
+  MARA: "The bread was made. I am told it was good.",
+  OKO: "The water was observed for the usual number of hours.",
+  JUN: "He is the same. I am told that is good news.",
+  TESS: "The bench was visited. It was the correct bench.",
+  VALE: "The light was left on, as he would.",
+};
+/* the night after their name was used — waved through */
+const PS_AFTER_COVERED = {
+  MARA: "Somebody sent for me yesterday. I was asleep on the flour. Still got paid.",
+  OKO: "I was out past the breakwater. Came back on the Register. How?",
+  JUN: "I was at the hospital. Who sent in my name?",
+  TESS: "They say I sent Tuesday. I don't think I did. The door opened anyway.",
+  VALE: "It sent as me. It got the light right.",
+};
+/* the night after their name was used — and it was caught */
+const PS_AFTER_MISSED = {
+  MARA: "Missed my night. I was asleep on the flour. They docked me. Fair.",
+  OKO: "Missed a night past the breakwater. Slept on the boat. The door wouldn't have me.",
+  JUN: "I was at the hospital. My door stayed shut till morning. Something tried to send for me, they said.",
+  TESS: "The door wouldn't open last night. A neighbour let me in. Did I forget to send?",
+  VALE: "It tried to send as me and you caught it. Good. I'd have caught it too.",
+};
+/* which line, for regular R on night index d:
+ * 1. tonight's paper is the machine's -> PS_MACHINE[R]
+ * 2. the machine used R's name last night -> PS_AFTER_COVERED (waved) or
+ *    PS_AFTER_MISSED (caught)
+ * 3. else -> PS[R][d] */
+function psLine(regular, nightIndex, { isMachine = false, usedLastNight = false, caughtLastNight = false } = {}) {
+  if (isMachine) return PS_MACHINE[regular] || "";
+  if (usedLastNight) return (caughtLastNight ? PS_AFTER_MISSED : PS_AFTER_COVERED)[regular] || "";
+  return (PS[regular] || [])[nightIndex] || "";
+}
+
 const api = {
   makeRng, passes, check, nearMiss, failKeys,
   deal, extraRuling, auditSet, ATTR_KEYS,
@@ -1033,6 +1098,7 @@ const api = {
   FORGE_THRESHOLD, forgeSuspicion, forgeJudge,
   TEL_KEYS, TEL_LABELS, TYPICAL, NEUTRAL_NOTES, EXCUSE_NOTES, NIGHT_MEMO,
   fmtMin, clock, say, oddField, grounds, explainGround, nightFaces, dealPostmarks, dealFinalePostmarks,
+  PS, PS_MACHINE, PS_AFTER_COVERED, PS_AFTER_MISSED, psLine,
 };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 if (root) root.NIGHT_SHIFT_LOGIC = api;

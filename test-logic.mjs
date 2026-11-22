@@ -239,5 +239,31 @@ assert(LOGIC.NEUTRAL_NOTES.length === 6, "NEUTRAL_NOTES length unchanged");
     === "ARRIVED 2:38 am — the same minute it was sent", "verdict: arrived same minute");
 }
 
+// ---------- the P.S. layer: flavour only, approved build-spec selection ----------
+{
+  const REGULARS = ["MARA", "OKO", "JUN", "TESS", "VALE"];
+  // every regular x night returns a non-empty line
+  for (const r of REGULARS) for (let d = 0; d < 5; d++)
+    assert(LOGIC.psLine(r, d, {}).length > 0, `ps: ${r} night ${d} empty`);
+  // selection order: machine > name-used-last-night > plain
+  assert(LOGIC.psLine("MARA", 2, { isMachine: true }) === LOGIC.PS_MACHINE.MARA, "ps: machine");
+  assert(LOGIC.psLine("OKO", 3, { isMachine: true, usedLastNight: true }) === LOGIC.PS_MACHINE.OKO,
+    "ps: machine beats used-last-night");
+  assert(LOGIC.psLine("JUN", 1, { usedLastNight: true, caughtLastNight: false }) === LOGIC.PS_AFTER_COVERED.JUN,
+    "ps: covered (waved through)");
+  assert(LOGIC.psLine("TESS", 1, { usedLastNight: true, caughtLastNight: true }) === LOGIC.PS_AFTER_MISSED.TESS,
+    "ps: missed (caught)");
+  assert(LOGIC.psLine("VALE", 4, {}) === LOGIC.PS.VALE[4], "ps: plain");
+  // machine + plain arrays are also distinct strings, sanity:
+  assert(LOGIC.PS_MACHINE.MARA !== LOGIC.PS.MARA[0], "ps: machine differs from plain");
+  // no P.S. may carry the jargon the player-facing scan forbids
+  const JARGON = /\b(LATENCY|ORIGIN|RELAYS|RECEIPT|POSTMARK|GATE 0|EXT GATE|STREET BOX|rcvd|vpn)\b|\b\d+ms\b|\+\d+h\d\dm/;
+  const all = [...REGULARS.flatMap((r) => LOGIC.PS[r]),
+    ...REGULARS.map((r) => LOGIC.PS_MACHINE[r]),
+    ...REGULARS.map((r) => LOGIC.PS_AFTER_COVERED[r]),
+    ...REGULARS.map((r) => LOGIC.PS_AFTER_MISSED[r])];
+  for (const s of all) assert(!JARGON.test(s), `ps jargon: ${s}`);
+}
+
 console.log(failures === 0 ? "ALL PASS" : `${failures} FAILURES`);
 process.exit(failures ? 1 : 0);

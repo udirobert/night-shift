@@ -97,6 +97,8 @@ for (let n = 0; n < 2; n++) {
     }
   }
   ok(`ot day ${n + 1}: the night machine was caught`, subs[botIdx].correct === true);
+  // the last stamp's P.S. dwell (2.6s) ends in the summary — poll for it
+  for (let i = 0; i < 30 && !d.querySelector("#auditActions button"); i++) await sleep(300);
   /* the night summary advances to the next day (overtime never hits the finale) */
   const btn = d.querySelector("#auditActions button");
   ok(`ot day ${n + 1}: the night offers the next day`, /next day/i.test(btn.textContent));

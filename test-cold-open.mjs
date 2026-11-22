@@ -85,13 +85,13 @@ ok("handbook has a Replay the tour affordance", /replay the tour/i.test($("#hbRe
 $("#startBtn").click();
 await sleep(900);
 
-// — the story: five panels, then the coached filing
+// — the story: six panels, then the coached filing
 const story = $("#story");
 await sleep(600);
 ok("story opens on first clock-in", !story.classList.contains("hidden"));
-ok("panel 1 caption: the office closes at six", /office closes at six/.test($("#storyCap").textContent));
-ok("panel 1 uses the night room painting", !!$("#storyPanel .sp-art"));
-ok("five progress dots, first lit", $$(".story-dot").length === 5 && $$(".story-dot.on").length === 1);
+ok("panel 1 caption: the synthetic city", /Most of the city is synthetic now/.test($("#storyCap").textContent));
+ok("panel 1 uses a full-bleed art panel", !!$("#storyPanel .sp-art"));
+ok("six progress dots, first lit", $$(".story-dot").length === 6 && $$(".story-dot.on").length === 1);
 ok("Skip always visible", !!$("#storySkip"));
 ok("panel 1: filled Next button on the caption + the tap hint",
   !!$("#storyCap .story-next") && /Next →/.test($("#storyCap .story-next").textContent)
@@ -101,15 +101,17 @@ ok("panel 2 still has Next, hint shows on panel 1 only",
   !!$("#storyCap .story-next") && $("#storyHint").classList.contains("hidden"));
 for (let i = 0; i < 2; i++) { click(story); await sleep(150); }
 ok("panels advance on tap", $$(".story-dot.on").length === 1
-  && /senders isn't a person/.test($("#storyCap").textContent));
-ok("panel 4 shows all five senders with names",
+  && /one human to read them/.test($("#storyCap").textContent));
+click(story); await sleep(150);
+ok("panel 5 is the night room", /At night, that's you/.test($("#storyCap").textContent));
+click(story); await sleep(150);
+ok("panel 6 shows all five senders with names",
   $$(".sp-face").length === 5 && $$(".sp-face span").every((s) => s.textContent.length > 1));
 await sleep(700);
-ok("panel 4 glitch touches every portrait — no culprit hint",
+ok("panel 6 glitch touches every portrait — no culprit hint",
   $$(".sp-face img.g").length === 5);
-click(story); await sleep(150);
-ok("panel 5: desk and the shift button",
-  /last one who reads them by hand/.test($("#storyCap").textContent)
+ok("panel 6: the shift button",
+  /isn't from a person/.test($("#storyCap").textContent)
   && /Start the shift →/.test(($("#storyCap .story-next") || {}).textContent || ""));
 // — Skip leaves the story only: lands on coach step 1
 // (walk the whole thing once so panel 5's button proves itself, then

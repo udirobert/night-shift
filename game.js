@@ -771,6 +771,7 @@ const G = {
   verdictDone: false,
   dayResults: [],        // "survived" | "struck" | "juror"
   nightResults: [],      // correct stamps per night
+  nightOutcome: [],      // per night: {face, result:"caught"|"waved", struck:[names]} — the P.S. and between-night panel read it
   cover: 0,              // machine mode: cover chips banked toward patching the stub
   forgeFlags: 0,         // machine mode: nights the wire flagged
   forgeLog: [],          // machine mode: per-night outcomes ("slip"|"flag")
@@ -1029,33 +1030,41 @@ function briefType(full) {
   }
   // no auto-dismiss: the player reads the beat at their own pace, then taps
 }
-/* ---------- the story: five panels before the first coached paper ----------
- * Replaces the old beat-1 brief. All existing art; each panel is one
- * composition + one caption. Skip leaves the story only (lands on coach
- * step 1); the coach's own Skip tour still skips the whole tour. */
+/* ---------- the story: six panels before the first coached paper ----------
+ * Approved build-spec captions. Skip leaves the story only (lands on
+ * coach step 1); the coach's own Skip tour still skips the whole tour.
+ * The same component carries the between-night panel: pass a panel list
+ * and a done callback to startStory. */
 const STORY = [
-  { kind: "art", src: "art/room-night.webp",
-    cap: "The office closes at six. You come in after." },
-  { kind: "cards", srcs: ["card-bakery-dawn", "card-call-home-dusk", "card-best-friend-walk"],
-    cap: "All night, people send in small proof they're still out there. A bakery at dawn. A call home." },
-  { kind: "stamp", src: "art/card-bakery-dawn.webp",
-    cap: "Each one gets stamped HUMAN and goes on the record." },
-  { kind: "faces",
-    cap: "Lately, one of the senders isn't a person. It's learning to write like one." },
+  { kind: "art", src: "art/open-city.webp",
+    cap: "Most of the city is synthetic now. The voices. The workers. The letters." },
+  { kind: "art", src: "art/open-mailbox.webp",
+    cap: "So each night, the people who are left send in one small proof they were out in the world." },
+  { kind: "art", src: "art/open-door.webp",
+    cap: "It keeps them on the Register: their pay, their vote, their front door. Miss a night and the door stays shut." },
+  { kind: "art", src: "art/open-hall.webp",
+    cap: "Machines sort the papers by day. The law still wants one human to read them." },
   { kind: "desk",
-    cap: "You're the last one who reads them by hand. Find it." },
+    cap: "At night, that's you." },
+  { kind: "faces",
+    cap: "Lately, one paper a night isn't from a person. Find it." },
 ];
 let storyOn = false, storyIdx = 0;
-function startStory() {
+let storyPanels = STORY, storyDone = null, storyKind = "opening";
+function startStory(panels, done) {
   storyOn = true; storyIdx = 0;
+  storyPanels = panels || STORY;
+  storyDone = done || null;
+  storyKind = panels ? "night" : "opening";
   $("story").classList.remove("hidden");
   renderStory();
 }
 function renderStory() {
-  const p = STORY[storyIdx], el = $("storyPanel");
+  const p = storyPanels[storyIdx], el = $("storyPanel");
   if (p.kind === "art") {
+    // missing new art falls back to the night-room painting, not a hole
     el.innerHTML = `<img class="sp-art" src="${p.src}" alt="" loading="eager"
-      onerror="this.classList.add('missing')">`;
+      onerror="if(!this.dataset.f){this.dataset.f=1;this.src='art/room-night.webp'}else{this.classList.add('missing')}">`;
   } else if (p.kind === "cards") {
     el.innerHTML = `<div class="sp-cards">${p.srcs.map((s) =>
       `<img src="art/${s}.webp" alt="" loading="eager" onerror="this.classList.add('missing')">`).join("")}</div>`;
@@ -1077,15 +1086,16 @@ function renderStory() {
   }
   // the advance affordance lives on the caption plate — an obvious amber
   // button, since taps and keys both work but nobody hunts for them
+  const lastCap = storyKind === "opening" ? "Start the shift →" : "Continue →";
   $("storyCap").innerHTML =
-    `<span class="cap-txt">${p.cap}</span><button type="button" class="story-next">${storyIdx === STORY.length - 1 ? "Start the shift →" : "Next →"}</button>`;
-  $("storyDots").innerHTML = STORY.map((_, i) =>
+    `<span class="cap-txt">${p.cap}</span><button type="button" class="story-next">${storyIdx === storyPanels.length - 1 ? lastCap : "Next →"}</button>`;
+  $("storyDots").innerHTML = storyPanels.map((_, i) =>
     `<span class="story-dot${i === storyIdx ? " on" : ""}"></span>`).join("");
-  $("storyHint").classList.toggle("hidden", storyIdx !== 0);
+  $("storyHint").classList.toggle("hidden", storyKind !== "opening" || storyIdx !== 0);
 }
 function nextStory() {
   if (!storyOn) return;
-  if (storyIdx >= STORY.length - 1) { endStory(); return; }
+  if (storyIdx >= storyPanels.length - 1) { endStory(); return; }
   storyIdx++;
   sfx.tick();
   renderStory();
@@ -1094,6 +1104,12 @@ function endStory() {
   if (!storyOn) return;
   storyOn = false;
   $("story").classList.add("hidden");
+  if (storyKind !== "opening") {
+    // a between-night panel just dismisses into the next night — no tour
+    const done = storyDone; storyDone = null;
+    if (done) done();
+    return;
+  }
   // the tour walks the real filing, one coach step at a time
   G.coldBeat = 3;
   $("caseBtns").classList.remove("hidden");
@@ -2281,7 +2297,7 @@ function flagField(k) {
     if (!isMachine(sub) && !G.coldOpen && G.mode !== "machine" && G.status === "player" && G.strikes < 3) {
       G.strikes++;
       sub.struck = true;
-      wire(`✗ ${sub.filer} — strike`);
+      wire(`✗ ${sub.filer} — strike · under review`);
     } else {
       wire(`✗ ${sub.filer} — no grounds`);
     }
@@ -2320,7 +2336,7 @@ function flagField(k) {
         later(() => pop.remove(), 1400);
       }
     }, 380);
-    later(nextCase, 1750);
+    later(nextCase, G.coldOpen || G.mode === "machine" ? 1750 : 2600); // the P.S. gets a full read
   } else {
     if (rowEl) {
       later(() => { rowEl.classList.add("struck"); sfx.strike(); }, 320);
@@ -2387,8 +2403,18 @@ function renderCase() {
   // the baseline prints on the paper while it's still being taught:
   // night zero and the first real night, then never again
   const showUsually = G.coldOpen || (G.day === 0 && G.mode !== "machine");
+  // the P.S. turns up only after the stamp — flavour, never evidence.
+  // Last night's face and result come from nightOutcome (persisted), so a
+  // resumed week writes the same lines. Night zero shows nothing.
+  const prevNight = G.day > 0 ? G.nightOutcome[G.day - 1] : null;
+  const psTxt = sub.pick && !sub.pendingFlag && !G.coldOpen && G.mode !== "machine"
+    ? LOGIC.psLine(sub.filer, G.day, {
+        isMachine: isBot,
+        usedLastNight: !!prevNight && prevNight.face === sub.filer,
+        caughtLastNight: !!prevNight && prevNight.result === "caught" })
+    : "";
 
-  const struck = (s) => s.struck ? " · STRIKE" : "";
+  const struck = (s) => s.struck ? " · STRIKE · under review" : "";
   let reason = "";
   if (sub.pick && !sub.pendingFlag) {
     if (isBot) {
@@ -2434,7 +2460,7 @@ function renderCase() {
       style="--tilt:${sub.tilt}deg; --stamprot:${sub.stampRot}deg">
       <div class="e-head"><span class="glyph">${sub.card.glyph}</span>
         <span class="filer read-2"><b>${sub.filer}</b>${sub.echoDay ? ` <i class="echo-tag" data-tip="this argument appeared in your DAY ${sub.echoDay} filing — the desk keeps copies">† your hand</i>` : ""}</span></div>
-      <div class="case-photo" aria-hidden="true">
+      <div class="case-photo${psTxt ? " has-ps" : ""}" aria-hidden="true">
         <img class="case-vignette" src="art/card-${sub.card.id}.webp" alt="" loading="lazy"
           onerror="this.classList.add('missing')" />
         <span class="id-wrap${checked && isBot && sub.correct ? " unmasked" : ""}">
@@ -2442,6 +2468,7 @@ function renderCase() {
             onerror="this.classList.add('missing')" />
           <i class="id-cap">IT WORE ${sub.filer}</i>
         </span>
+        ${psTxt ? `<span class="ps-slip">P.S. ${psTxt}</span>` : ""}
       </div>
       <div class="name">${sub.card.name}</div>
       ${sub.pick && !sub.pendingFlag ? `<p class="case-verdict ${sub.preStamped ? "prev" : sub.correct ? "ok" : "bad"}">${sub.preStamped ? "PREVIOUS SHIFT" : sub.correct ? "RIGHT" : "WRONG"}</p>
@@ -2646,7 +2673,9 @@ function stamp(pickVal) {
     if (sub.correct) sfx.gavel();
     else { sfx.thud(); deskShake(); }
   }, hit + 70);
-  if (sub.correct) later(nextCase, 900 + hit);  // wrong stamps stay up until dismissed
+  // a right stamp auto-advances; when a P.S. is on the back it gets a
+  // full read (≥2.6s). Wrong stamps still wait for a tap or key.
+  if (sub.correct) later(nextCase, G.coldOpen || G.mode === "machine" ? 900 + hit : 2600);
 }
 
 /* the hand stamp drops out of frame, lands off-square on the card, and
@@ -2861,6 +2890,13 @@ function auditSummary() {
   // its file grows at the close of every night — caught or not, the desk
   // keeps the postmark it wore
   if (botSub0) G.machineFile.push({ night: G.day + 1, face: botSub0.filer, tel: botSub0.tel });
+  // the story layer reads tonight's outcome: whose name it wore, whether
+  // it was caught or waved through, and who went under review
+  G.nightOutcome[G.day] = {
+    face: botSub0 ? botSub0.filer : null,
+    result: botSub0 ? (botSub0.pick === "SUS" && botSub0.correct ? "caught" : "waved") : null,
+    struck: G.auditSubs.filter((x) => !x.bot && x.pick === "SUS").map((x) => x.filer),
+  };
   paintMachineFile();
   // the third mark lands at the close of the shift — the desk cuts then
   if (G.strikes >= 3 && G.status === "player") {
@@ -2944,10 +2980,33 @@ function paintAuditSummary() {
     btn.textContent = G.mode === "week"
       ? (last ? "Last call →" : "Next night →")
       : "Next day →";
-    btn.addEventListener("click", nextDay);
+    // the week answers each night with what the stamps did — one panel
+    // between the summary and the next night (night 5: before last call)
+    btn.addEventListener("click", () =>
+      G.mode === "week" ? nightPanel(nextDay) : nextDay());
   }
   actions.appendChild(btn);
   btn.focus();
+}
+
+/* between nights: one full-frame panel, story component, shows what the
+ * stamps did. Reads the recorded outcome — a save on the summary paints
+ * the same panel. Captions per the approved build spec. */
+function nightPanel(done) {
+  const o = G.nightOutcome[G.day];
+  let cap, src = "art/room-night.webp";
+  if (o && o.face && o.result === "caught") {
+    src = `art/out-${o.face.toLowerCase()}.webp`;
+    cap = `You caught it. It was sending for ${o.face}. ${o.face}'s night went unsent — door shut till morning.`;
+  } else if (o && o.face) {
+    src = `art/in-${o.face.toLowerCase()}.webp`;
+    cap = `It passed as ${o.face}. ${o.face} kept the door, and never knew.`;
+  } else {
+    cap = "The day shift filed your stamps.";
+  }
+  if (o && o.struck && o.struck.length)
+    cap += ` And ${o.struck[0]} is under review. Nobody told them why.`;
+  startStory([{ kind: "art", src, cap }], done);
 }
 
 // ---------- FINALE ----------
@@ -3083,11 +3142,11 @@ function signRule() {
   if (botCut && humanCut.length === 0) {
     title = G.status === "player" ? "LAST HUMAN STANDING" : "DAWN";
     line = G.valeCaught > 0
-      ? `You read how every paper got here all week, and it finally held. You cut ${G.culprit} and only ${G.culprit}. The docket is human again — and quiet.`
-      : `You cut ${G.culprit} and only ${G.culprit}. The trip said what the paper never could. The docket is human again — and quiet.`;
+      ? `You read how every paper got here all week, and it finally held. You cut ${G.culprit} and only ${G.culprit}. The Register stays human — five names, all true.`
+      : `You cut ${G.culprit} and only ${G.culprit}. The trip said what the paper never could. The Register stays human — five names, all true.`;
   } else if (botCut) {
     title = "COLLATERAL";
-    line = `${G.culprit} is gone. So are ${humanCut.join(", ")}. The clause didn't care who was on the other side of the cut.`;
+    line = `${G.culprit} is off the Register. So are ${humanCut.join(", ")}. The clause didn't care whose door it shut.`;
   } else {
     title = "THE DAY SHIFT IS AUTOMATED";
     const crow = G.finaleRows.find((r) => r.filer === G.culprit);
@@ -3095,7 +3154,7 @@ function signRule() {
       ? LOGIC.explainGround(crow.tel.tells[0], crow, crow.filedMin, crow.tel, crow.note, [])
       : "the trip told on it";
     line = `You let it belong. ${why} — it was right there on the paper, and the clause that should have cut it cut only ` +
-      `${joinNames(humanCut)}. Tomorrow the desk is its, and you'll sign what it files.`;
+      `${joinNames(humanCut)}. A sixth name goes on the Register — not a person, but it sends. Tomorrow you'll sign what it files.`;
   }
   G.finaleTitle = title;
   G.finaleLine = line;
@@ -3200,7 +3259,14 @@ function endGame() {
     $("machineEndBtn").classList.toggle("hidden",
       localStorage.getItem("night-shift-machine-unlocked") !== "1");
   } catch { /* no storage */ }
-  document.body.dataset.end = cutEnd ? "cut" : "earned";
+  // data-end picks the dawn art: the two painted rooms stay as defaults;
+  // end-collateral / end-belong / end-cut layer in when the art exists
+  // (each <img> self-hides on a missing file and the painted bg shows)
+  document.body.dataset.end =
+    title === "COLLATERAL" ? "collateral"
+    : title === "THE DAY SHIFT IS AUTOMATED" ? "belong"   // "you let it belong"
+    : cutEnd || (G.elimDay && G.mode !== "machine") ? "cut"
+    : "earned";
   // the synth's last word is the resolve chord — the licensed dawn
   // track carries the ending itself
   score.play("dawn");
@@ -3691,7 +3757,7 @@ setTimeout(() => {
  * repaints the exact desk: phase, day, docket, and the night's stamped
  * cases. Pay and strikes post exactly once; the apply/paint splits above
  * guarantee a resumed desk never counts anything twice. */
-const SAVE_KEY = "night-shift-save-v2";
+const SAVE_KEY = "night-shift-save-v3"; // v3: nightOutcome (P.S. + between-night panel state)
 const PREF_KEY = "night-shift-prefs-v1";
 
 function persist() {
@@ -3705,6 +3771,7 @@ function persist() {
       oath: G.oath, clueUsed: G.clueUsed, dayPay: G.dayPay,
       lastMissKeys: G.lastMissKeys, elimDay: G.elimDay,
       dayResults: G.dayResults, nightResults: G.nightResults,
+      nightOutcome: G.nightOutcome,
       focusAttr: G.focusAttr,
       coldOpen: G.coldOpen, coldTaught: G.coldTaught, coldBeat: G.coldBeat,
       amendAfter: G.amendAfter, amendShown: G.amendShown, amending: G.amending,
@@ -4014,6 +4081,7 @@ function resumeGame(s) {
     oath: s.oath, clueUsed: s.clueUsed, dayPay: s.dayPay,
     lastMissKeys: s.lastMissKeys, elimDay: s.elimDay,
     dayResults: s.dayResults || [], nightResults: s.nightResults || [],
+    nightOutcome: s.nightOutcome || [],
     focusAttr: s.focusAttr || "all",
     coldOpen: !!s.coldOpen, coldTaught: !!s.coldTaught, coldBeat: s.coldBeat || 3,
     // a mid-amendment save restores as acknowledged: chips match the

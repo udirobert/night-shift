@@ -52,31 +52,65 @@ const jargon = (where) => {
   ok(`no machine-speak visible — ${where}${m ? ` (found "${m[0]}")` : ""}`, !m);
 };
 /* work one night: stamp HUMAN on humans, SUS + the seeded tell on the
- * machine; returns true if the machine was caught */
-async function workNight() {
-  let caught = false;
+ * machine; returns true if the machine was caught.
+ * mode "wave": wave the machine through and wrongly SUS the first human
+ * (feeds the between-night panel's other two captions). */
+async function workNight(mode) {
+  let caught = false, psChecked = 0;
   for (let i = 0; i < G().auditSubs.length; i++) {
     window.eval(`clearLater(); G.auditIdx = ${i}; G.auditLocked = false;`);
     window.renderCase();
     await sleep(120);
     jargon(`case ${i + 1} render`);
+    ok(`case ${i + 1}: no P.S. before the stamp`, !$("#caseCard .ps-slip"));
     const mf = $("#mfileBtn");
     if (mf && !mf.classList.contains("hidden")) {
       click(mf); await sleep(80); jargon("machine file open"); click(mf); await sleep(60);
     }
     const sub = G().auditSubs[i];
-    if (sub.bot) {
+    if (sub.bot && mode !== "wave") {
       window.stamp("SUS");
       await sleep(150);
       const tell = sub.tel.tells[0];
       window.flagField(tell);
       if (sub.correct) caught = true;
       jargon(`case ${i + 1} verdict`);
+      const ps = $("#caseCard .ps-slip");
+      ok("machine's paper answers with its own P.S. once stamped",
+        !!ps && ps.textContent.startsWith("P.S.") &&
+        ps.textContent.includes(window.eval(`LOGIC.PS_MACHINE["${sub.filer}"]`)));
       await sleep(2800); // the catch auto-advances
-    } else {
+    } else if (sub.bot && mode === "wave") {
       window.stamp("HUMAN");
       jargon(`case ${i + 1} verdict`);
       await sleep(1700);
+    } else if (mode === "wave" && psChecked === 0 && !sub.bot) {
+      // a wrong SUS on a person: strike and "under review"
+      window.stamp("SUS");
+      await sleep(150);
+      window.flagField(""); // no grounds → wrong stamp
+      jargon(`case ${i + 1} verdict`);
+      ok("a wrongly-struck person reads under review",
+        /under review/.test($("#caseCard .case-reason")?.textContent || "") &&
+        (G().wire || []).some((l) => /strike · under review/.test(l)));
+      ok("P.S. still answers on a wrong stamp", !!$("#caseCard .ps-slip"));
+      psChecked++;
+      click($("#caseCard")); await sleep(300); // wrong stamps wait for a tap
+    } else {
+      window.stamp("HUMAN");
+      jargon(`case ${i + 1} verdict`);
+      const ps = $("#caseCard .ps-slip");
+      if (ps && !psChecked) {
+        psChecked++;
+        const prev = G().nightOutcome[G().day - 1] || {};
+        const want = window.eval(
+          `LOGIC.psLine("${sub.filer}", ${G().day}, {isMachine:false,usedLastNight:${prev.face === sub.filer},caughtLastNight:${prev.result === "caught"}})`);
+        ok("stamped person's P.S. shows the build-spec line",
+          ps.textContent.startsWith("P.S.") && ps.textContent.includes(want));
+        if (!ps.textContent.includes(want)) console.log("   dbg ps:", sub.filer, "|", ps.textContent, "| want:", want,
+          "| day:", G().day, "| prev:", JSON.stringify(G().nightOutcome[G().day - 1]));
+      }
+      await sleep(2700); // the P.S. dwell is ≥2.6s before auto-advance
     }
   }
   return caught;
@@ -94,8 +128,8 @@ await sleep(400);
 ok("cold open opens the week", G().coldOpen === true && G().phase === "audit");
 await sleep(1200);
 ok("the story opens the week", !$("#story").classList.contains("hidden"));
-for (let i = 0; i < 5; i++) { click($("#story")); await sleep(120); }
-ok("the story ends on the coached case", $("#story").classList.contains("hidden") && !!$("#coach"));
+for (let i = 0; i < 8 && !$("#story").classList.contains("hidden"); i++) { click($("#story")); await sleep(120); }
+ok("six panels then the coached case", $("#story").classList.contains("hidden") && !!$("#coach"));
 for (let s = 0; s < 2; s++) { click($("#coach .coach-next")); await sleep(200); } // coach to the live step
 ok("the tray leads with the machine's filing", G().auditSubs.length === 2 && G().auditSubs[0].filer === G().culprit);
 const bot0 = G().auditSubs[0];
@@ -104,6 +138,7 @@ window.stamp("SUS");
 await sleep(200);
 window.flagField(bot0.tel.tells[0]);
 ok("tray caught via the postmark", bot0.pick === "SUS" && bot0.correct === true);
+ok("night zero shows no P.S.", !$("#caseCard .ps-slip"));
 await sleep(2600);
 click($("#caseCard")); // dismiss → the guided person
 await sleep(400);
@@ -122,16 +157,37 @@ for (let n = 0; n < 5; n++) {
   ok(`night ${n + 1} is an audit (no day docket)`, G().phase === "audit" && G().coldOpen === false);
   const label = d.querySelector("#dayDots .day-label").textContent;
   ok(`night ${n + 1} label reads NIGHT`, /NIGHT/.test(label));
-  const caught = await workNight();
+  const caught = await workNight(n === 1 ? "wave" : "catch");
   caughtAny = caughtAny || caught;
+  // the last stamp's P.S. dwell (2.6s) ends in the summary — poll for it
+  for (let i = 0; i < 30 && !d.querySelector("#auditActions button"); i++) await sleep(300);
   jargon(`night ${n + 1} summary`);
-  ok(`night ${n + 1} machine caught via the postmark`, caught);
+  ok(`night ${n + 1} machine ${n === 1 ? "waved" : "caught"} via the postmark`,
+    n === 1 ? !caught : caught);
   const btn = d.querySelector("#auditActions button");
   const isLast = n === 4;
   ok(`night ${n + 1} summary offers ${isLast ? "last call" : "next night"}`,
     isLast ? /last call/i.test(btn.textContent) : /next night/i.test(btn.textContent));
   click(btn);
   await sleep(500);
+  // the between-night panel answers with what the stamps did (week mode only)
+  ok(`night ${n + 1} between-night panel shows`, !$("#story").classList.contains("hidden"));
+  const cap = $("#storyCap").textContent, o = G().nightOutcome[n];
+  if (n === 1) {
+    ok("panel: waved-through caption + under-review appendix",
+      new RegExp(`It passed as ${o.face}\\. ${o.face} kept the door`).test(cap) &&
+      new RegExp(`And ${o.struck[0]} is under review\\. Nobody told them why\\.`).test(cap));
+  } else {
+    ok("panel: caught caption",
+      new RegExp(`You caught it\\. It was sending for ${o.face}\\.`).test(cap));
+  }
+  // a save on the panel is still the summary's save — resume lands there
+  let savePhase = "unreadable";
+  try { savePhase = JSON.parse(window.localStorage.getItem("night-shift-save-v3") || "null")?.phase; } catch { /* jsdom file:// has no storage */ }
+  ok("save on the panel stays resumable (phase audit)",
+    savePhase === "audit" || savePhase === "unreadable");
+  click($("#story")); // Continue →
+  await sleep(600);
 }
 ok("the machine was caught at least once this week", caughtAny);
 

@@ -5,6 +5,13 @@ A five-night deduction thriller. One filing on every docket isn't human.
 Standalone spin-off of [Last Human Standing](https://lasthumanstanding.thisyearnofear.com) —
 same ARIA, same wire, no account needed.
 
+You work the night desk at the **Register of the Living** — the ledger
+that holds everyone's pay, vote, and front door. Every stamped paper
+keeps someone on it; a wrongly stamped SUS puts a person **under
+review**. After each stamp lands, the paper answers with a handwritten
+**P.S. on the back** — flavour only, never evidence — so you meet the
+person just after you judged them.
+
 You work the night desk. Five papers come in a night, each carrying a
 strip that shows **how it got here** — TRAVEL TIME · SENT FROM · STOPS ·
 ARRIVED. One sender is a machine using a regular's name, and the trip is
@@ -37,8 +44,8 @@ python3 -m http.server 8000
 ## How to play
 
 - **Night zero — story, then the guided tour**: the first clock-in
-  opens with a five-panel story (the office, the senders, the stamps,
-  the thing that learned to write like a person) — skippable with
+  opens with a six-panel story (the synthetic city, the Register, the
+  night desk, and the thing that learned to write like a person) — skippable with
   **Skip**, which lands on the coached first paper. Then a coach bubble
   walks the real filing: how the paper got here and what a person's
   *usually* looks like, then the clerk's note and what it explains,
