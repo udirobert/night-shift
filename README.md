@@ -188,8 +188,11 @@ first load (their license's credit condition).
 
 ## Credits
 
-Painted key art generated with MiniMax H3 (fal.ai); the brass seal render
-is Hyper3D Rodin; music licensed from WeLoveIndies ("Manhattan Lounge",
+Painted key art generated with MiniMax H3 (fal.ai); the opening panels,
+between-night scenes and ending plates were generated with Recraft
+(custom in-house style; prompts and sources in the source repository's
+`docs/night-shift-art-manifest.json`); the brass seal render is
+Hyper3D Rodin; music licensed from WeLoveIndies ("Manhattan Lounge",
 "Blue In Green" — F/demo license, credited in-game); stings, foley and
 sound design are composed WebAudio (`score.js`); the paper UI is inline
 SVG. All proceedings fictional. Full license text:
