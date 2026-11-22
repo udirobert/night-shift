@@ -58,8 +58,7 @@ await sleep(300);
 
 window.startGame("spine-test-1");
 await sleep(400);
-window.eval("G.coldOpen = false; G.coldTaught = true;"); // skip the tray — deal night one
-window.startAudit();
+window.skipTour(); // skip the tour — deal night one
 await sleep(300);
 
 const subs = G().auditSubs;

@@ -35,17 +35,20 @@ python3 -m http.server 8000
 
 ## How to play
 
-- **Night zero — the first minute**: clocking in teaches the game one
-  screen at a time, and every beat is skippable. First the desk: five
-  faces and the premise — one of these filers is a machine that wants to
-  be filed as human, and only the postmark says otherwise. Then the
-  wrongness: a person's postmark laid beside the machine's strip, five
-  aligned rows — lag, a real gate, a receipt that waits — against a
-  filing that didn't travel at all. Then your first catch: one
-  filing on the desk — stamp it SUS and point at the field that gives
-  it away. Night zero forgives a first miss: a wrong field re-asks, and
-  waving the machine through costs no strike. The desk is teaching, not
-  testing. That's every verb the week uses.
+- **Night zero — the guided tour**: clocking in teaches the game on real
+  filings, one step at a time. First the desk card: five faces and the
+  premise — one of these filers is a machine that wants to be filed as
+  human, and only the postmark says otherwise. Then the machine's own
+  filing lands on the desk and a coach bubble walks it: the postmark
+  and what a person's *usually* looks like, then the clerk's note and
+  what it excuses, then the two off fields pulse — circle one, stamp
+  SUS. A second filing teaches the other half: a real person whose one
+  odd field the note explains — stamp HUMAN. Night zero forgives every
+  miss: no strikes, a wrong field re-asks, and waving the machine
+  through costs nothing. **Skip tour** sits on every tour screen and
+  lands you on night one; once the tour is done or skipped, future
+  clock-ins go straight to night one, and the handbook's **Replay the
+  tour** brings it back. That's every verb the week uses.
 - **The nights**: five filings, one at a time, each a paper card with a
   taped clerk's note and a tear-off postmark stub. The only question is
   *is this filer the machine?*
@@ -61,13 +64,16 @@ python3 -m http.server 8000
     Accuse a person whose note explains the oddity and the card draws
     the line from the note to the field.
 - **The postmark** is four fields, printed at the foot of every card —
-  the same muted strip for every filer, nothing flagged:
-  - `LATENCY` — round-trip time. A person waits 100ms+ on the wire.
-  - `ORIGIN` — `EXT GATE` is an indoor line, `STREET BOX` is outdoors;
-    `GATE 0` is inside this building.
-  - `RELAYS` — hops the filing crossed. A person's paper crosses 2–5.
-  - `RECEIPT` — when the desk receipted it: after the filing, or it
-    never travelled.
+  the same muted strip for every filer, nothing flagged. Night zero and
+  night one print the baseline beside each field — *usually* — and the
+  handbook keeps it permanently:
+  - `LATENCY` — round-trip time. Usually **110ms or more**: a person
+    waits on the wire.
+  - `ORIGIN` — usually **an outside gate**: `EXT GATE` is an indoor
+    line, `STREET BOX` is outdoors; `GATE 0` is inside this building.
+  - `RELAYS` — hops the filing crossed. Usually **2 or more**.
+  - `RECEIPT` — when the desk receipted it. Usually **after it was
+    filed**.
   The rule of the desk: **every human oddity has an excuse written on
   the paper** — the clerk's marginal note. An odd field *with* its
   excuse is a person being human; an odd field *without* one is the

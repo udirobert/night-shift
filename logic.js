@@ -756,6 +756,15 @@ function latencyMs(v) {
   const m = /^([\d.]+)ms$/.exec(v || "");
   return m ? parseFloat(m[1]) : null;
 }
+/* what a person's filing looks like — the baseline the night-zero tour
+ * teaches and the handbook prints. MUST mirror oddField's thresholds:
+ * a field is odd iff it violates its TYPICAL line. */
+const TYPICAL = {
+  latency: "110ms or more",
+  origin: "an outside gate",
+  hops: "2 or more",
+  receipt: "after it was filed",
+};
 /* is this field's value something a person could not file? (odd, before
  * the excuse question — grounds() layers the note on top) */
 function oddField(k, tel, filedMin) {
@@ -969,7 +978,7 @@ const api = {
   critText, riddleFor, pickCulprit, buildFinale, genDays,
   FORGE_FIELDS, FORGE_TIERS, FORGE_SUSPICION, FORGE_GRANT, FORGE_CAP,
   FORGE_THRESHOLD, forgeSuspicion, forgeJudge,
-  TEL_KEYS, TEL_LABELS, NEUTRAL_NOTES, EXCUSE_NOTES, NIGHT_MEMO,
+  TEL_KEYS, TEL_LABELS, TYPICAL, NEUTRAL_NOTES, EXCUSE_NOTES, NIGHT_MEMO,
   fmtMin, oddField, grounds, explainGround, nightFaces, dealPostmarks, dealFinalePostmarks,
 };
 if (typeof module !== "undefined" && module.exports) module.exports = api;

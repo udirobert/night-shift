@@ -2118,7 +2118,7 @@ body[data-shift="night"] #docket td.c-fact.tag-match {
 }
 .brief-riddle {
   font-family: Georgia, serif; font-style: italic;
-  font-size: 17px; line-height: 1.55; color: #d9cfb8;
+  font-size: 17px; line-height: 1.55; color: #e6dcc6;
   min-height: 1.55em; margin: 0 0 14px;
 }
 .brief-riddle::after {
@@ -2127,12 +2127,12 @@ body[data-shift="night"] #docket td.c-fact.tag-match {
 }
 @keyframes caretBlink { 50% { opacity: 0; } }
 .brief-aria {
-  font-size: 12.5px; line-height: 1.5; color: #9aa4b5;
+  font-size: 12.5px; line-height: 1.5; color: #b8c0cd;
   border-top: 1px solid #262a36; padding-top: 12px; margin: 0;
 }
 .brief-who { color: var(--amber, #e8b34b); font-family: ui-monospace, monospace; letter-spacing: .1em; }
 .brief-skip {
-  font-size: 9.5px; letter-spacing: .2em; color: #5a6478;
+  font-size: 9.5px; letter-spacing: .2em; color: #8a92a4;
   text-transform: uppercase; text-align: right; margin: 10px 0 0;
 }
 /* night-zero beats: the five faces (beat 1) and the postmark baseline
@@ -2161,8 +2161,9 @@ body[data-shift="night"] #docket td.c-fact.tag-match {
 }
 .brief-card .rc-compare { margin: 0 0 14px; }
 
-/* desk dims behind the brief */
-body.brief-up #frame { filter: brightness(.5) saturate(.8); }
+/* desk dims behind the brief — the brief's own backdrop does the work;
+ * a filter on #frame used to shroud the modal inside it */
+
 
 /* ---- the deal-in: docket rows and hand cards cascade after the brief ---- */
 #dayPhase.staging #docketBody tr,
@@ -2573,7 +2574,7 @@ button:focus-visible, tr[data-tip]:focus-visible {
 }
 
 /* locked tease: visible, honest about the terms */
-#machineTitleBtn.locked { opacity: .55; border-style: dashed; }
+#machineTitleBtn.locked { opacity: .55; }
 #machineTitleBtn.locked:hover { opacity: .8; }
 
 /* ---------- the week wears the desk down: ledger degradation ---------- */
@@ -2829,21 +2830,11 @@ body.strikepulse #frame::after {
  * A film's opening credits: full screen, over before the desk appears,
  * gone on the first input. The video is the only motion; reduced-motion
  * skips the splash and keeps the static music credit on the title. */
-#creditsIntro {
-  position: fixed; inset: 0; z-index: 9999;
-  background: #05070c;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 18px;
-  transition: opacity .35s ease;
-}
-#creditsIntro.gone { opacity: 0; pointer-events: none; }
-#creditsIntro video {
-  display: block; width: min(640px, 86vw); height: auto;
-  border-radius: 3px; box-shadow: 0 8px 40px rgba(0, 0, 0, .7);
-}
-#creditsIntro .ci-skip {
-  margin: 0; font-size: 10px; letter-spacing: .22em;
-  color: rgba(207, 194, 162, .45); text-transform: uppercase;
+/* the credits slate lives in the title foot — small, inline, never an overlay */
+#title .ci-slate {
+  display: block; width: 120px; height: auto; margin: 0 auto 6px;
+  border-radius: 6px; opacity: .8;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .5);
 }
 
 /* ---------- night desk layout: memo plate, side column, drawers ---------- */
@@ -3453,3 +3444,99 @@ body[data-phase="audit"] .fact-chips i { margin: 0 1px; font-style: normal; opac
 #auditSummary .sum-plate .sum-vale.sum-teaser { color: var(--amber, #e8b34b); font-style: normal; }
 /* the hint line finishes its sentence */
 #auditHint { white-space: normal; overflow: visible; text-overflow: clip; max-width: 62ch; margin-left: auto; margin-right: auto; line-height: 1.4; min-height: 2.8em; }
+
+/* -------------------- tour: title links, coach callout, baseline -------------------- */
+/* the alternates shrink to text links under the one big punch card */
+#title .title-links {
+  display: flex; justify-content: center; gap: 18px; flex-wrap: wrap;
+}
+button.tlink {
+  background: none; border: none; box-shadow: none; padding: 2px 0;
+  font: inherit; font-size: 11.5px; letter-spacing: .08em;
+  color: var(--muted, #8a8677); text-decoration: underline;
+  text-underline-offset: 3px; cursor: pointer;
+}
+button.tlink:hover:not(:disabled) { color: var(--amber, #e8b34b); transform: none; }
+button.tlink.locked { opacity: .55; }
+#handbook button.tlink { font-size: 12px; }
+
+/* the coach callout: a paper note pointing at the part it teaches —
+   never a dimmed modal, the rest of the card stays readable */
+.coach {
+  position: fixed; z-index: 45; max-width: 240px;
+  background: #f0e4c2;
+  border: 1px solid #b8a05a; border-left: 3px solid #a8842f;
+  border-radius: 3px; padding: 10px 12px 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .55);
+  transform: rotate(-.6deg);
+  animation: coachIn .3s ease both;
+  cursor: pointer;
+}
+@keyframes coachIn {
+  from { opacity: 0; transform: translateY(6px) rotate(-.6deg); }
+  to { opacity: 1; transform: none; }
+}
+/* under 1100px the coach docks in the instruction slot — same paper,
+   same width as the plate it stands in for, nothing overlays the card */
+.coach.docked {
+  position: static; transform: none;
+  max-width: none; margin: 8px 0 2px; width: auto;
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px;
+}
+.coach.docked p { margin: 0; flex: 1; }
+.coach.docked .coach-btns { flex-shrink: 0; gap: 14px; }
+.coach p {
+  margin: 0 0 6px; font-family: Georgia, serif; font-style: italic;
+  font-size: 13px; line-height: 1.45; color: #241c0e;
+}
+.coach-btns { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.coach-next {
+  background: none; border: none; padding: 2px 0; cursor: pointer;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px; letter-spacing: .08em; color: #6a4e10;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.coach-skip {
+  background: none; border: none; padding: 2px 0; cursor: pointer;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px; letter-spacing: .06em; color: #6d6552;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.coach-next:hover { color: #3a2a05; }
+.coach-skip:hover { color: #241c0e; }
+/* the part being taught lifts off the paper */
+.coach-hi {
+  outline: 2px dashed rgba(168, 132, 47, .9); outline-offset: 3px;
+  border-radius: 3px;
+}
+.coach-pulse {
+  outline: 2px solid rgba(160, 50, 40, .85); outline-offset: 2px;
+  border-radius: 3px;
+  animation: coachPulse 1.1s ease-in-out infinite;
+}
+@keyframes coachPulse {
+  0%, 100% { outline-color: rgba(160, 50, 40, .85); }
+  50% { outline-color: rgba(160, 50, 40, .3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach { animation: none; }
+  .coach-pulse { animation: none; }
+}
+/* Skip tour on the brief card: same small underline link */
+.tour-skip {
+  display: block; margin: 12px 0 0; background: none; border: none;
+  padding: 2px 0; cursor: pointer;
+  font-family: ui-monospace, monospace; font-size: 10.5px;
+  letter-spacing: .1em; color: #8a92a4;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.tour-skip:hover { color: #e8b34b; }
+.tour-skip.hidden { display: none; }
+
+/* the baseline prints itself on the stub — night zero + night one only */
+.tel-us {
+  display: block; font-style: normal; font-weight: 400;
+  font-size: 10px; letter-spacing: .04em; line-height: 1.25;
+  color: rgba(83, 73, 47, .85);
+}

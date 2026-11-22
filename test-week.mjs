@@ -78,20 +78,24 @@ await sleep(300);
 window.startGame("spine-week-1");
 await sleep(400);
 
-/* — night zero: three beats, then the catch — */
+/* — night zero: the desk card, then two coached filings — */
 ok("cold open opens the week", G().coldOpen === true && G().phase === "audit");
 await sleep(1200);
-click($("#shiftBrief")); // beat 1 (the desk) → beat 2 (the postmark)
+click($("#shiftBrief")); // beat 1 (the desk) → the coached case
 await sleep(400);
-click($("#shiftBrief")); // beat 2 → beat 3 (the case, live verbs)
-await sleep(400);
-ok("the tray's one filing is the machine's", G().auditSubs.length === 1 && G().auditSubs[0].filer === G().culprit);
+for (let s = 0; s < 2; s++) { click($("#coach .coach-next")); await sleep(200); } // coach to the live step
+ok("the tray leads with the machine's filing", G().auditSubs.length === 2 && G().auditSubs[0].filer === G().culprit);
 const bot0 = G().auditSubs[0];
 window.eval("clearLater()");
 window.stamp("SUS");
 await sleep(200);
 window.flagField(bot0.tel.tells[0]);
 ok("tray caught via the postmark", bot0.pick === "SUS" && bot0.correct === true);
+await sleep(2600);
+click($("#caseCard")); // dismiss → the guided person
+await sleep(400);
+window.stamp("HUMAN");
+ok("the guided person stamps clean", G().auditSubs[1] && G().auditSubs[1].correct === true);
 await sleep(2800);
 ok("tray summary shows", !$("#auditSummary").classList.contains("hidden"));
 const trayBtn = d.querySelector("#auditActions button");

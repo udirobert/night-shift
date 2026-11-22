@@ -654,9 +654,6 @@ const ARIA = {
   coldOpen: [
     "You read what the wire can't.",
   ],
-  coldFirst: [
-    "Odd is the tell — unless the paper explains it.",
-  ],
   coldCompare: [
     "The paper held.",
     "It changes its story tomorrow.",
@@ -986,6 +983,7 @@ function startDay(resume) {
  * then the docket cascades onto the desk row by row. Any input skips it. */
 let briefOpen = false, briefTypeTimer = null, briefKind = "day";
 function stageDay(d) {
+  briefKind = "day";
   $("briefDay").textContent = d.dayLabel;
   $("briefTheme").textContent = `${d.emoji} ${d.theme}`;
   $("briefWho").textContent = "ARIA //";
@@ -1039,38 +1037,28 @@ function stageCold() {
   $("briefTheme").textContent = "🌙 NIGHT 0 — THE DESK";
   $("briefWho").textContent = "ARIA //";
   $("briefAria").textContent = ARIA.coldOpen[0];
-  $("briefCompare").classList.add("hidden");
+  $("briefSkip").classList.remove("hidden");
   const faces = $("briefFaces");
   faces.innerHTML = [G.culprit, ...humans()].map((f) =>
     `<div class="brief-face"><img src="art/${f.toLowerCase()}.webp" alt="" loading="lazy" onerror="this.classList.add('missing')"><span>${f}</span></div>`).join("");
   faces.classList.remove("hidden");
-  briefType("Five colleagues file while the city sleeps. One of them is a machine — it wants to be filed as human. Only the postmark says otherwise.");
-}
-function stageColdBeat2() {
-  G.coldBeat = 2;
-  $("briefTheme").textContent = "🌙 NIGHT 0 — THE POSTMARK";
-  $("briefAria").textContent = ARIA.coldFirst[0];
-  $("briefFaces").classList.add("hidden");
-  const cmp = $("briefCompare");
-  cmp.innerHTML = coldBeatCompareHTML();
-  cmp.classList.remove("hidden");
-  briefType("A person's paper crosses the world to get here — lag, a gate outside, relays. This one didn't travel at all.");
+  briefType("You're the night clerk. Five colleagues file overnight. One of them is a machine pretending to be a person. Catch it.");
 }
 function endBrief() {
   if (!briefOpen) return;
-  if (briefKind === "cold" && G.coldBeat === 1) { stageColdBeat2(); return; }
   briefOpen = false;
   clearInterval(briefTypeTimer);
   $("shiftBrief").classList.add("hidden");
   document.body.classList.remove("brief-up");
   if (briefKind === "cold") {
-    // beat 3: the case arrives — live verbs, one instruction
+    // the tour walks the real filing, one coach step at a time
     G.coldBeat = 3;
     $("briefFaces").classList.add("hidden");
-    $("briefCompare").classList.add("hidden");
+    $("briefSkip").classList.add("hidden");
     $("caseBtns").classList.remove("hidden");
     setInstr("coldCatch");
     renderCase();
+    coachShow(1);
     if (!calmMotion()) later(() => sfx.riffle(), 120);
     persist();
     return;
@@ -1889,13 +1877,21 @@ function startAudit(resume) {
 
 /* ---------- cold open: night zero ----------
  * Clock-in lands on the night desk. Three beats, one thing per screen:
- * the five faces you work with, the postmark baseline (a person's strip
- * next to an impossible one), then the machine's own filing — live
- * verbs, teaching grace, no strikes. Then the first real night. */
+ * the five faces you work with, then two real filings on the desk — a
+ * coach bubble walks the postmark, the note, and the catch; then the
+ * excuse rule once on a person. Teaching grace, no strikes. Then night
+ * one. */
 const COLD_RULE = [{ key: "setting", allow: ["indoor"], text: "indoors" }];
 const COLD_BOT_CARD = {
   id: "cold-vale", name: "The overnight reading room", glyph: "🗄",
   argument: "Third floor, after close. Somebody left the light on over the atlases. Filed it anyway.",
+  tags: { place: "library", time: "night", people: "alone", setting: "indoor" },
+};
+// the tour's second filing: a real person whose one odd field the note
+// explains — run up the same rules so the excuse lesson is practised, not read
+const COLD_GUIDED_CARD = {
+  id: "cold-guided", name: "The night drop", glyph: "📮",
+  argument: "Runner brought it straight from the lobby — no wait on the wire.",
   tags: { place: "library", time: "night", people: "alone", setting: "indoor" },
 };
 function startColdOpen() {
@@ -1930,18 +1926,19 @@ function startColdOpen() {
       ...extra,
     };
   };
-  // beat 2's textbook: a real person's postmark, dealt like any other
+  // two filings on the tray tonight: the machine's first, then a real
+  // person whose odd field the note explains — the excuse rule, practised
+  // once before it costs a strike
   const roster = [...humans()];
-  const refFiled = fmtFiled(marks[1].filedMin);
-  G.coldRef = {
-    filer: roster[Math.floor(trng() * roster.length)],
-    filed: refFiled,
-    tel: marks[1].tel,
-  };
-  // one filing on the desk tonight: the machine's. The player meets the
-  // desk first (beat 1), learns the baseline (beat 2), then catches it
-  // with the desk watching (beat 3).
-  G.auditSubs = [mk(COLD_BOT_CARD, G.culprit, { arg: COLD_BOT_CARD.argument })];
+  const guidedFiler = roster[Math.floor(trng() * roster.length)];
+  G.auditSubs = [
+    mk(COLD_BOT_CARD, G.culprit, { arg: COLD_BOT_CARD.argument }),
+    mk(COLD_GUIDED_CARD, guidedFiler, { arg: COLD_GUIDED_CARD.argument }),
+  ];
+  const guided = G.auditSubs[1];
+  guided.tel = { ...guided.tel, hops: "0" };
+  guided.note = LOGIC.EXCUSE_NOTES.hops;
+  guided.tel.tells = LOGIC.grounds(guided.card, guided.filedMin, guided.tel, guided.note, G.machineFile);
   G.auditIdx = 0;
   G.contestedIdx = -1;
   G.amendAfter = null;
@@ -1974,6 +1971,7 @@ function startColdOpen() {
 
 function endColdOpen() {
   $("caseBtns").classList.add("hidden");
+  $("instr").classList.add("hidden");
   $("caseCard").innerHTML = "";
   paintTray();
   const s = $("auditSummary");
@@ -1991,8 +1989,136 @@ function endColdOpen() {
   btn.addEventListener("click", () => startAudit());
   actions.appendChild(btn);
   btn.focus();
+  tourDone(true);
   persist();
 }
+
+/* ---------- the coach: night zero's tour, taught on the paper itself ----------
+ * A small callout anchored to the part of the filing it describes; the
+ * rest of the card stays fully readable. Steps 1–2 lock the stamps; the
+ * last step of each filing is live. Never persisted — a resume lands on
+ * the current filing with input live, no replay. */
+const TOUR_KEY = "night-shift-tour-done";
+function tourDone(set) {
+  try {
+    if (set) localStorage.setItem(TOUR_KEY, "1");
+    return localStorage.getItem(TOUR_KEY) === "1";
+  } catch { return false; } /* no storage — the tour just replays */
+}
+const COACH_STEPS = {
+  1: { anchor: ".case-stub", text: "The postmark shows how the paper travelled. \u201CUsually\u201D is what a person's looks like.", live: false },
+  2: { anchor: ".note-slip", text: "The clerk's note. When a person's postmark is odd, the reason is written here.", live: false },
+  3: { anchor: ".case-stub", text: "Two fields are off and the note doesn't explain them. Tap one, then stamp SUS.", live: true, pulseTells: true },
+  4: { anchor: ".note-slip", text: "Odd — but the note says why. That's a person. Stamp HUMAN.", live: true, link: "hops" },
+};
+let tourStep = 0;
+let coachEl = null;
+function coachAnchorEls(step) {
+  const st = COACH_STEPS[step];
+  const card = $("caseCard");
+  if (!st || !card) return [];
+  const els = [card.querySelector(st.anchor)].filter(Boolean);
+  if (st.pulseTells) {
+    const sub = G.auditSubs[G.auditIdx];
+    (sub && sub.tel.tells || []).forEach((k) => {
+      const row = card.querySelector(`.tel-row[data-tel="${k}"]`);
+      if (row) els.push(row);
+    });
+  }
+  return els;
+}
+function coachShow(step) {
+  coachHideDom();
+  tourStep = step;
+  G.tourLock = !COACH_STEPS[step].live;
+  coachAnchorEls(step).forEach((el) => el.classList.add(step === 3 ? "coach-pulse" : "coach-hi"));
+  if (COACH_STEPS[step].link) {
+    // the slip reaches for the field it explains — same drawing as a
+    // false accusation teaches later
+    later(() => drawSlipLink(COACH_STEPS[step].link), 60);
+  }
+  coachEl = document.createElement("div");
+  coachEl.className = "coach";
+  coachEl.id = "coach";
+  coachEl.innerHTML = `<p>${COACH_STEPS[step].text}</p>
+    <div class="coach-btns">
+      ${!COACH_STEPS[step].live ? '<button type="button" class="coach-next">Next →</button>' : ""}
+      <button type="button" class="coach-skip">Skip tour</button>
+    </div>`;
+  // under 1100px there's no honest free space beside the card — the coach
+  // docks in the instruction slot instead of floating over the paper
+  const docked = innerWidth < 1100;
+  coachEl.classList.toggle("docked", docked);
+  if (docked) $("instr").insertAdjacentElement("afterend", coachEl);
+  else document.body.appendChild(coachEl);
+  coachEl.querySelector(".coach-next")?.addEventListener("click", (e) => { e.stopPropagation(); coachNext(); });
+  coachEl.querySelector(".coach-skip").addEventListener("click", (e) => { e.stopPropagation(); skipTour(); });
+  coachEl.addEventListener("click", () => { if (G.tourLock) coachNext(); });
+  // stamps stay asleep until the step that teaches them
+  $("susBtn").disabled = $("humanBtn").disabled = G.tourLock;
+  // the banner would contradict the coach — while it teaches, it owns the slot
+  $("instr").classList.add("hidden");
+  positionCoach(step);
+}
+function positionCoach(step) {
+  if (!coachEl || coachEl.classList.contains("docked")) return;
+  const st = COACH_STEPS[step];
+  const anchor = $("caseCard").querySelector(st.anchor);
+  if (!anchor) return;
+  const a = anchor.getBoundingClientRect();
+  const card = $("caseCard").querySelector(".case-card");
+  const c = card ? card.getBoundingClientRect() : a;
+  const w = coachEl.offsetWidth, h = coachEl.offsetHeight;
+  let left, top;
+  if (innerWidth >= 1100 && c.right + w + 24 < innerWidth) {
+    // beside the card, level with the part being taught
+    left = c.right + 14;
+    top = Math.max(10, Math.min(a.top + a.height / 2 - h / 2, innerHeight - h - 10));
+  } else if (innerWidth >= 700 && c.left - w - 14 > 8) {
+    // the card hugs the right edge — the desk left of it is free
+    left = c.left - w - 14;
+    top = Math.max(10, Math.min(a.top + a.height / 2 - h / 2, innerHeight - h - 10));
+  } else {
+    left = Math.max(10, Math.min(a.left + a.width / 2 - w / 2, innerWidth - w - 10));
+    top = a.bottom + 10;
+    const btns = $("caseBtns").getBoundingClientRect();
+    if (top + h > btns.top - 6) top = Math.max(10, a.top - h - 10);
+  }
+  coachEl.style.left = `${Math.round(left)}px`;
+  coachEl.style.top = `${Math.round(top)}px`;
+}
+function coachNext() {
+  if (tourStep && tourStep < 3) coachShow(tourStep + 1);
+}
+function coachHideDom() {
+  coachEl && coachEl.remove();
+  coachEl = null;
+  document.querySelectorAll(".coach-hi, .coach-pulse").forEach((el) =>
+    el.classList.remove("coach-hi", "coach-pulse"));
+  // hand the instruction slot back — on real nights it's already
+  // memo-only, so only the tour needs the restore
+  if (G.coldOpen) $("instr").classList.remove("hidden");
+}
+function coachHide() {
+  coachHideDom();
+  tourStep = 0;
+  G.tourLock = false;
+}
+function skipTour() {
+  tourDone(true);
+  coachHide();
+  if (briefOpen) {
+    briefOpen = false;
+    clearInterval(briefTypeTimer);
+    $("shiftBrief").classList.add("hidden");
+    document.body.classList.remove("brief-up");
+    $("briefFaces").classList.add("hidden");
+    $("briefSkip").classList.add("hidden");
+  }
+  startAudit();
+}
+$("briefSkip").addEventListener("click", (e) => { e.stopPropagation(); skipTour(); });
+addEventListener("resize", () => { if (tourStep) positionCoach(tourStep); });
 
 function renderRuleChips(rule, amended) {
   // the rule is a seal in the margin — struck when amended. The words print
@@ -2079,7 +2205,7 @@ function flagField(k) {
     sub.earned = 0;
     // a hunch aimed at a human is a wrong stamp — the desk keeps a count;
     // a hunch aimed at the machine saw it but misnamed the field
-    if (!isMachine(sub) && G.mode !== "machine" && G.status === "player" && G.strikes < 3) {
+    if (!isMachine(sub) && !G.coldOpen && G.mode !== "machine" && G.status === "player" && G.strikes < 3) {
       G.strikes++;
       sub.struck = true;
       wire(`✗ ${sub.filer} — strike`);
@@ -2135,24 +2261,6 @@ function flagField(k) {
   }
 }
 
-/* Beat 2 of night zero: a person's receipt and the machine's, side by
- * side, aligned row by row — claim, latency, origin, relays, receipt.
- * The strip aligns; it never says which is wrong. This is the baseline
- * the rest of the week is read against. */
-function coldBeatCompareHTML() {
-  const ref = G.coldRef, sub = G.auditSubs[0];
-  if (!ref || !sub) return "";
-  const row = (label, a, b, k) =>
-    `<div class="rcc-row"${k ? ` data-tel="${k}" data-tip="${TEL_LABEL[k]} — ${TEL_TIPS[k]}"` : ""}><span class="rcc-k">${label}</span><span class="rcc-a">${a}</span><span class="rcc-b tel-val${k && (sub.tel.tells || []).includes(k) ? " tell" : ""}">${b}</span></div>`;
-  return `<div class="rc-compare" aria-label="Postmark comparison">
-    <div class="rcc-head"><span class="rcc-k"></span><span class="rcc-a rcc-who"><b>${ref.filer}</b><i>a person</i></span><span class="rcc-b rcc-who"><b>${sub.filer}</b><i>on your desk</i></span></div>
-    ${row("CLAIM", ref.filed, sub.filed)}
-    ${row(TEL_LABEL.latency, ref.tel.latency, sub.tel.latency, "latency")}
-    ${row(TEL_LABEL.origin, ref.tel.origin, sub.tel.origin, "origin")}
-    ${row(TEL_LABEL.hops, "×" + ref.tel.hops, "×" + sub.tel.hops, "hops")}
-    ${row(TEL_LABEL.receipt, ref.tel.receipt, sub.tel.receipt, "receipt")}
-  </div>`;
-}
 /* the night desk carries no ARIA rule — the paper game's weather stays on
  * the day docket. One standing order, printed once, nothing else. */
 function renderNightOrder() {
@@ -2203,6 +2311,9 @@ function renderCase() {
   // Its own voice arrives after the catch, where it's a payoff, not a tell.
   const arg = sub.arg || sub.card.argument;
   const isBot = isMachine(sub);
+  // the baseline prints on the paper while it's still being taught:
+  // night zero and the first real night, then never again
+  const showUsually = G.coldOpen || (G.day === 0 && G.mode !== "machine");
 
   const struck = (s) => s.struck ? " · STRIKE" : "";
   let reason = "";
@@ -2273,7 +2384,7 @@ function renderCase() {
         <div class="stub-head">POSTMARK · filed ${sub.filed}</div>
         <div class="stub-grid">
         ${TEL_KEYS.map((k, ti) =>
-          `<div class="tel-row${sub.armed === k ? " armed" : ""}${sub.flagKey === k && !sub.correct && sub.note === EXCUSE_NOTES[k] && LOGIC.oddField(k, sub.tel, sub.filedMin) ? " explained" : ""}" data-tel="${k}" data-tip="${TEL_LABEL[k]} ${sub.tel[k]} — ${TEL_TIPS[k]}" style="--i:${ti}"${!sub.pick || sub.pendingFlag ? ' tabindex="0" role="button"' : ""}><span>${TEL_LABEL[k]}</span><span class="tel-val${sub.flagKey === k && sub.correct ? " hit" : ""}">${sub.tel[k]}</span></div>`).join("")}
+          `<div class="tel-row${sub.armed === k ? " armed" : ""}${sub.flagKey === k && !sub.correct && sub.note === EXCUSE_NOTES[k] && LOGIC.oddField(k, sub.tel, sub.filedMin) ? " explained" : ""}" data-tel="${k}" data-tip="${TEL_LABEL[k]} ${sub.tel[k]} — ${TEL_TIPS[k]}" style="--i:${ti}"${!sub.pick || sub.pendingFlag ? ' tabindex="0" role="button"' : ""}><span>${TEL_LABEL[k]}${showUsually ? `<i class="tel-us">usually ${LOGIC.TYPICAL[k]}</i>` : ""}</span><span class="tel-val${sub.flagKey === k && sub.correct ? " hit" : ""}">${sub.tel[k]}</span></div>`).join("")}
         </div>
       </div>
       ${sub.pendingFlag ? `<div class="flag-row">
@@ -2311,7 +2422,7 @@ function renderCase() {
     ["mouseenter", "focus"].forEach((ev) => b.addEventListener(ev, () => row.classList.add("peek")));
     ["mouseleave", "blur"].forEach((ev) => b.addEventListener(ev, () => row.classList.remove("peek")));
   });
-  $("susBtn").disabled = $("humanBtn").disabled = checked;
+  $("susBtn").disabled = $("humanBtn").disabled = checked || G.tourLock;
   if (!checked) {
     if (!calmMotion()) {
       // most filings land with a rustle; some — the machine's always,
@@ -2322,13 +2433,38 @@ function renderCase() {
     }
   }
   paintTray();
+  // the coach re-anchors to the re-rendered card; the night-one nudge arms
+  if (tourStep) {
+    coachAnchorEls(tourStep).forEach((el) => el.classList.add(tourStep === 3 ? "coach-pulse" : "coach-hi"));
+    positionCoach(tourStep);
+  }
+  armNudge();
 }
+
+/* the baseline prints itself faintly on the paper — night zero teaches
+   it, night one still shows it, then it lives in the handbook only */
+function armNudge() {
+  clearTimeout(nudgeTimer);
+  if (G.coldOpen || G.day !== 0 || G.mode !== "week") return;
+  const sub = G.auditSubs[G.auditIdx];
+  if (!sub || sub.pick || sub.armed || sub.nudged) return;
+  nudgeTimer = setTimeout(() => {
+    const s = G.auditSubs[G.auditIdx];
+    if (s === sub && !s.pick && !s.armed && !G.tourLock) {
+      s.nudged = true;
+      const h = $("auditHint");
+      if (h) h.textContent = `Compare each field with "usually". Tap the one that's off.`;
+    }
+  }, NUDGE_MS);
+}
+let nudgeTimer = 0;
+let NUDGE_MS = 12000;
 
 /* circling a field costs nothing — it only names what the stamp will
    * mean. While a flag is pending, pointing at a field IS the answer. */
 function armField(k) {
   const sub = G.auditSubs[G.auditIdx];
-  if (!sub) return;
+  if (!sub || G.tourLock) return;
   if (sub.pendingFlag) { flagField(k); return; }
   if (sub.pick) return;
   sub.armed = sub.armed === k ? null : k;
@@ -2337,9 +2473,10 @@ function armField(k) {
 }
 
 function stamp(pickVal) {
-  if (G.auditLocked || G.phase !== "audit") return;
+  if (G.auditLocked || G.phase !== "audit" || G.tourLock) return;
   const sub = G.auditSubs[G.auditIdx];
   if (!sub || sub.pick) return;
+  if (tourStep) coachHide();
   G.auditLocked = true;
   sub.pick = pickVal;
   const isBot = isMachine(sub);
@@ -2498,6 +2635,12 @@ function advanceCase() {
   G.auditIdx = next;
   if (G.auditIdx >= G.auditSubs.length) return auditSummary();
   renderCase();
+  // the tour's second filing arrives with its own coach step — the excuse
+  const nxt = G.auditSubs[G.auditIdx];
+  if (G.coldOpen && G.auditIdx === 1 && nxt && !nxt.coached) {
+    nxt.coached = true;
+    coachShow(4);
+  }
   // a case that arrives already judged (the desk's echo) still waits for
   // a tap — keep the desk locked so the continue handlers stay live
   const cur = G.auditSubs[G.auditIdx];
@@ -3197,6 +3340,11 @@ document.addEventListener("keydown", (e) => {
     }
   } else if (G.phase === "audit") {
     if (e.key === "f" || e.key === "F") { toggleMachineFile(); return; }
+    // a locked coach step owns the keys: Enter/Space advances, the rest wait
+    if (G.tourLock) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); coachNext(); }
+      return;
+    }
     if (G.auditLocked) {
       // grounds pending → resolve as a hunch; amending → skip the banner;
       // otherwise advance
@@ -3276,6 +3424,13 @@ function toggleHandbook(force) {
   }
 }
 $("hbClose").addEventListener("click", () => toggleHandbook(false));
+/* the tour lives in the handbook too — clearing the flag means the next
+ * clock-in walks it again, and from the title it starts that run now */
+$("hbReplay").addEventListener("click", () => {
+  try { localStorage.removeItem(TOUR_KEY); } catch { /* no storage */ }
+  toggleHandbook(false);
+  if (document.body.dataset.phase === "title") clockIn(SEED);
+});
 $("mfileBtn").addEventListener("click", () => toggleMachineFile());
 $("wireBtn").addEventListener("click", () => toggleWire());
 $("mfileX").addEventListener("click", () => toggleMachineFile(false));
@@ -3494,6 +3649,7 @@ function persist() {
 function cardById(id) {
   if (!id) return null;
   if (id === COLD_BOT_CARD.id) return COLD_BOT_CARD;
+  if (id === COLD_GUIDED_CARD.id) return COLD_GUIDED_CARD;
   return CARDS.find((c) => c.id === id) || null;
 }
 
@@ -3745,7 +3901,9 @@ function startGame(seed) {
   titleEl.classList.add("hidden");
   gameEl.classList.remove("hidden");
   hud();
-  if (G.status === "player") startColdOpen();
+  // the tray is a tour, once: seen it (or skipped it) and Clock in lands
+  // straight on night one, same deal either way
+  if (G.status === "player" && !tourDone()) startColdOpen();
   else startAudit();
 }
 
@@ -3856,52 +4014,17 @@ $("againBtn").addEventListener("click", () => location.reload());
 document.body.dataset.phase = "title";
 
 /* opening credits: the WeLoveIndies intro the FREE & DEMO license asks for
- * on a non-commercial release. Films don't chain their credits to the
- * audience — any input skips it, a 9s cap covers a stalled file, and
- * prefers-reduced-motion skips it outright (the title's static music
- * credit carries the attribution). Once per tab: a reload mid-week
- * shouldn't replay the slate. */
+ * on a non-commercial release. It lives on the title as a small slate
+ * beside the music credit — muted, plays once on load, ends on its last
+ * frame, never intercepts input. Reduced motion: the static credit
+ * alone carries the attribution. */
 (function creditsIntro() {
-  const splash = $("creditsIntro");
   const vid = $("creditsIntroVid");
-  if (!splash || !vid) return;
-  let seen = false;
-  try { seen = sessionStorage.getItem("credits-seen") === "1"; } catch { /* private mode */ }
-  let fading = false;
-  const fadeOut = () => {
-    if (fading) return;
-    fading = true;
-    try {
-      const t0 = vid.volume;
-      let step = 0;
-      const iv = setInterval(() => {
-        vid.volume = Math.max(0, t0 * (1 - ++step / 9));
-        if (step >= 9) { clearInterval(iv); try { vid.pause(); } catch { /* no media */ } }
-      }, 50);
-    } catch { /* no media element */ }
-  };
-  const dismiss = () => {
-    if (!splash.parentNode || splash.classList.contains("gone")) return;
-    splash.classList.add("gone");
-    try { sessionStorage.setItem("credits-seen", "1"); } catch { /* private mode */ }
-    // the title loop rides the same first gesture — fade the credits'
-    // audio out under it instead of hard-cutting both sounds at once
-    fadeOut();
-    later(() => splash.remove(), 500);
-  };
-  if (seen || calmMotion()) { splash.remove(); return; }
-  // any input skips — the credits never hold the desk hostage
-  ["pointerdown", "keydown", "wheel", "touchstart"].forEach((ev) =>
-    splash.addEventListener(ev, (e) => { e.preventDefault(); dismiss(); }, { once: true }));
-  vid.addEventListener("ended", dismiss, { once: true });
-  setTimeout(dismiss, 9000);
-  // sound first (autoplay policy); if the browser blocks it, mute and play anyway
+  if (!vid) return;
+  if (calmMotion()) return;
   try {
     const p = vid.play();
-    if (p && p.catch) p.catch(() => {
-      vid.muted = true;
-      try { const q = vid.play(); if (q && q.catch) q.catch(() => {}); } catch { /* no media */ }
-    });
+    if (p && p.catch) p.catch(() => { /* blocked — the credit stands alone */ });
   } catch { /* no media element */ }
 })();
 

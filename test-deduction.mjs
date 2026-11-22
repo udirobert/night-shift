@@ -75,6 +75,17 @@ for (let seed = 0; seed < N; seed++) {
         assert(c.bot, `s${seed} d${d}: a HUMAN filing has grounds ${g}`);
         assert(sameSet(g, m.tel.tells), `s${seed} d${d}: grounds ${g} != tells ${m.tel.tells}`);
       }
+      // TYPICAL is the player-facing mirror of oddField: a field is odd
+      // iff it breaks the "usually" line the tour and handbook print
+      const typOdd = {
+        latency: (t) => { const x = /^([\d.]+)ms$/.exec(t.latency); return !!x && +x[1] < 110; },
+        origin: (t) => t.origin === "GATE 0",
+        hops: (t) => parseInt(t.hops, 10) < 2,
+        receipt: (t, f) => { const x = /\+(\d+)h(\d+)m/.exec(t.receipt); return !!x && (+x[1]) * 60 + (+x[2]) <= f; },
+      };
+      for (const k of KEYS)
+        assert(typOdd[k](m.tel, m.filedMin) === LOGIC.oddField(k, m.tel, m.filedMin),
+          `s${seed} d${d}: TYPICAL/oddField disagree on ${k}=${m.tel[k]}`);
       // a person's postmark never carries grounds — the hard invariant
       if (!c.bot) assert(m.tel.tells.length === 0, `s${seed} d${d}: human tells non-empty`);
       else assert(m.tel.tells.length > 0, `s${seed} d${d}: machine has no tell`);
