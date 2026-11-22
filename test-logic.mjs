@@ -157,8 +157,8 @@ for (let t = 0; t < FN; t++) {
   assert(rows.length === 5 && new Set(rows.map((r) => r.filer)).size === 5, `fin${t}: rows/filers`);
   assert(new Set(rows.map((r) => r.name)).size === 5, `fin${t}: duplicate finale cards`);
   const crow = rows.find((r) => r.filer === culprit);
-  assert(crow && crow.ts === "+0.003s", `fin${t}: culprit ts wrong`);
-  assert(rows.filter((r) => r !== crow).every((r) => r.ts !== "+0.003s"), `fin${t}: human carries machine ts`);
+  assert(crow && /^\+0h0[1-8]m$/.test(crow.ts), `fin${t}: culprit ts wrong`);
+  assert(rows.filter((r) => r !== crow).every((r) => r.ts !== crow.ts), `fin${t}: human carries machine ts`);
   assert(opts.length === 4 && new Set(opts.map((o) => o.text)).size === 4, `fin${t}: clause count`);
   const cutLists = opts.map((o) => rows.filter((row) => !LOGIC.passes(row, o.rule)).map((row) => row.filer));
   const winners = cutLists.filter((c) => c.length === 1 && c[0] === culprit).length;

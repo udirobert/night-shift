@@ -79,8 +79,8 @@ for (let n = 0; n < 2; n++) {
   /* night: postmark-only — the machine is in the five, catch it on its tell */
   ok(`ot day ${n + 1}: the night is an audit`, G().phase === "audit");
   const subs = G().auditSubs;
-  ok(`ot day ${n + 1}: five filings, one machine`, subs.length === 5 && subs.filter((s) => s.filer === G().culprit).length === 1);
-  const botIdx = subs.findIndex((s) => s.filer === G().culprit);
+  ok(`ot day ${n + 1}: five filings, one machine`, subs.length === 5 && subs.filter((s) => s.bot).length === 1);
+  const botIdx = subs.findIndex((s) => s.bot);
   /* stamp HUMAN on the humans, SUS + tell on the machine */
   for (let i = 0; i < 5; i++) {
     window.eval(`clearLater(); G.auditIdx = ${i}; G.auditLocked = false;`);

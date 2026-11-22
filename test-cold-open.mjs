@@ -46,6 +46,7 @@ window.addEventListener("error", (e) => errors.push(String(e.message)));
 let pass = 0, fail = 0;
 const ok = (name, cond) => { if (cond) { pass++; console.log("  ✓", name); } else { fail++; console.log("  ✗ FAIL:", name); } };
 const G = () => window.eval("G");
+const LOGIC = () => window.eval("LOGIC");
 const click = (el) => el.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 
 await sleep(700);
@@ -59,7 +60,7 @@ ok("title phase", d.body.dataset.phase === "title");
 ok("title tooltips wired (data-tip on the verb card)", $("#startBtn").dataset.tip.length > 10);
 ok("title tooltips reachable (uiTip outside hidden #game)", !$("#game #uiTip") && !!$("#uiTip"));
 ok("title says one thing (no steps pills, no ticker)", !$(".steps") && !$("#shiftLedger"));
-ok("title hook names machine + postmark", /machine/i.test($(".sub").textContent) && /postmark/.test($(".sub").textContent));
+ok("title hook names machine + the excuse rule", /machine/i.test($(".sub").textContent) && /oddity has a reason/.test($(".sub").textContent));
 ok("alternates demoted to read-3", ["#randomBtn", "#machineTitleBtn"].every((s) => $(s).classList.contains("read-3")));
 ok("primary not demoted", !$("#startBtn").classList.contains("read-3"));
 ok("legend keeps the stakes + the handbook key", /three wrong stamps/i.test($(".legend").textContent) && /handbook/i.test($(".legend").textContent));
@@ -88,16 +89,27 @@ ok("beat 2 compare strip: 5 aligned rows", $$("#briefCompare .rcc-row").length =
 ok("beat 2 compare labels a person vs the desk",
   /a person/.test($("#briefCompare .rcc-head").textContent) && /on your desk/.test($("#briefCompare .rcc-head").textContent));
 ok("beat 2 faces hidden (one thing per screen)", $("#briefFaces").classList.contains("hidden"));
-ok("beat 2 aria names the baseline", /messy/.test($("#briefAria").textContent));
+ok("beat 2 aria names the baseline", /odd is the tell/i.test($("#briefAria").textContent));
+// night zero's machine: exactly two tell cells emphasised, nothing stray
+ok("only the two tell cells carry the tell class",
+  $$("#briefCompare .rcc-b.tel-val.tell").length === 2);
+const coldBot = G().auditSubs[0];
+ok("cold machine tells are latency+origin",
+  JSON.stringify(coldBot.tel.tells) === JSON.stringify(["latency", "origin"]));
+ok("cold machine grounds == tells",
+  JSON.stringify(LOGIC().grounds(coldBot.card, coldBot.filedMin, coldBot.tel, coldBot.note, G().machineFile)) === JSON.stringify(coldBot.tel.tells));
+ok("cold machine relays normal (2-5, not odd)",
+  parseInt(coldBot.tel.hops, 10) >= 2 && !LOGIC().oddField("hops", coldBot.tel.hops));
+ok("cold machine receipt not odd", !LOGIC().oddField("receipt", coldBot.tel.receipt));
 
 // — beat 3: the case arrives, live verbs
 click(brief);
 await sleep(500);
 ok("brief dismissed for beat 3", brief.classList.contains("hidden"));
 ok("case card arrives", !!$(".case-card"));
-ok("instr = the catch instruction", d.getElementById("instr").textContent.startsWith("This filing is on your desk"));
-ok("standing order, not ARIA's rule", /THE DESK — the postmark is the only testimony/.test($("#ruleChips").textContent)
-  && !/ARIA's rule/.test($("#ruleChips").textContent));
+ok("instr = the catch instruction", d.getElementById("instr").textContent.startsWith("Circle the field"));
+ok("no desk-order line above the night card",
+  $("#deskBar").classList.contains("hidden") && !/ARIA's rule/.test($("#ruleChips").textContent));
 ok("verb row up (the decision is live)", !$("#caseBtns").classList.contains("hidden"));
 ok("postmark stub present", !!$(".case-stub.read-2"));
 ok("filer portrait present", !!$(".case-photo .case-id"));
@@ -121,12 +133,13 @@ ok("grace costs no strike", G().strikes === 0);
 click($(`.flag-f[data-k="${tell}"]`));
 await sleep(700);
 const reason = ($(".case-reason") || {}).textContent || "";
-ok("catch verdict names the field", /ANOMALY QUARANTINED/.test(reason) && G().auditSubs[0].correct === true);
-ok("the machine speaks after the catch, not before", /It said: “/.test(reason));
+ok("catch verdict names the field", /⚡/.test(reason) && /unexplained|before it was filed/.test(reason) && G().auditSubs[0].correct === true);
 
 // — summary, then the first real night
 await sleep(1500);
 ok("summary after tray", !$("#auditSummary").classList.contains("hidden"));
+ok("the machine's voice lands on the tray plate, not the card",
+  /It said: “/.test(($("#auditSummary") || {}).textContent || ""));
 const trayBtn = d.querySelector("#auditActions button");
 ok("tray offers the first night", /night one/i.test(trayBtn.textContent));
 click(trayBtn);

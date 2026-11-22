@@ -1387,6 +1387,8 @@ body[data-shift="night"] #docket td.c-stamp.sus { box-shadow: inset 0 0 0 999px 
   margin-bottom: 3px;
 }
 .rcc-b.tel-val { font-weight: 600; }
+/* night zero's baseline marks the two impossible fields, nothing else */
+.rcc-b.tel-val.tell { font-weight: 800; text-decoration: underline dotted; text-underline-offset: 3px; }
 .rcc-k { color: #93a3ba; }
 .rcc-a, .rcc-b { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 420px) {
@@ -2286,6 +2288,22 @@ body.brief-up #frame { filter: brightness(.5) saturate(.8); }
   user-select: none;
 }
 .wire-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* its file — the machine's postmark history, styled like the wire log.
+ * A narrow side rail: it never sits over the card. */
+#mfileBtn {
+  font: inherit; letter-spacing: inherit; color: inherit;
+  background: var(--card); border: 1px solid var(--line); border-radius: 4px;
+  padding: 3px 8px; cursor: pointer; margin-left: auto;
+}
+#mfileBtn:hover { color: var(--ink); }
+#machineFile {
+  font-family: ui-monospace, monospace; font-size: .66rem; line-height: 1.6;
+  letter-spacing: .04em; color: var(--ink); opacity: .75;
+  padding: 4px; border-bottom: 1px dashed color-mix(in srgb, var(--ink) 18%, transparent);
+  user-select: none;
+}
+.mf-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wire-line:last-child { opacity: 1; }
 .wire-line:not(:last-child) { opacity: .55; }
 
@@ -2827,3 +2845,611 @@ body.strikepulse #frame::after {
   margin: 0; font-size: 10px; letter-spacing: .22em;
   color: rgba(207, 194, 162, .45); text-transform: uppercase;
 }
+
+/* ---------- night desk layout: memo plate, side column, drawers ---------- */
+/* the memo is the night's instruction now — the same plate treatment as
+   the instruction banner, wrapped, never clipped */
+#nightMemo {
+  display: block; opacity: 1;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12.5px; letter-spacing: .03em; line-height: 1.5;
+  color: var(--accent); text-align: center;
+  margin: 2px 0 0; padding: 9px 14px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  white-space: normal; overflow-wrap: anywhere;
+}
+#nightMemo.hidden { display: none !important; }
+#nightMemo::before { content: "✉ MEMO · "; color: var(--faint); }
+
+/* its file: .open is the only state that shows it — the HUD button,
+   the ✕, F and Esc all just move that one class */
+#machineFile { display: none; }
+#machineFile.open { display: block; }
+.drawer-x {
+  float: right; margin: -2px -2px 0 6px;
+  font: inherit; font-size: .72rem; line-height: 1;
+  background: none; border: none; color: var(--faint);
+  cursor: pointer; padding: 4px 6px;
+}
+.drawer-x:hover { color: var(--ink); }
+#wireX, #mfileX { display: none; }
+#wireLog.empty { display: none; }
+
+/* the HUD's wire button mirrors its file button */
+#wireBtn {
+  font: inherit; letter-spacing: inherit; color: inherit;
+  background: var(--card); border: 1px solid var(--line); border-radius: 4px;
+  padding: 3px 8px; cursor: pointer;
+}
+#wireBtn:hover { color: var(--ink); }
+
+/* ARIA's ruling floats over the desk instead of shoving the card down —
+   it types, holds a few seconds, and is gone again */
+body[data-phase="audit"] #ariaSay {
+  position: absolute; top: 64px; left: 50%;
+  transform: translateX(-50%);
+  width: min(52ch, 92%); z-index: 46;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .5);
+}
+
+/* narrow desk: the wire and its file hide behind HUD buttons and open
+   as overlay drawers — tap again, ✕ or Esc to dismiss */
+@media (max-width: 1099px) {
+  body[data-phase="audit"] #wireLog { display: none; }
+  body[data-phase="audit"] #wireLog.open,
+  body[data-phase="audit"] #machineFile.open {
+    display: block;
+    position: fixed; top: 56px; left: 12px; right: 12px;
+    max-height: 44vh; overflow: auto; z-index: 60;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px;
+    opacity: 1; font-size: .72rem; line-height: 1.6;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, .6);
+  }
+  body[data-phase="audit"] #wireLog.open #wireX,
+  body[data-phase="audit"] #machineFile.open #mfileX { display: block; }
+}
+
+/* wide desk: the wire and its file live in a left column beside the
+   card — the HUD toggles hide at this width, F still folds the file */
+@media (min-width: 1100px) {
+  body[data-phase="audit"] #frame { max-width: 1120px; padding-left: 344px; }
+  body[data-phase="audit"] #sideCol {
+    position: absolute; left: 18px; top: 16px; width: 292px;
+    background: rgba(7, 9, 13, .78);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; z-index: 20;
+  }
+  body[data-phase="audit"] #wireLog {
+    display: block; max-height: none; border-bottom: none;
+  }
+  body[data-phase="audit"] #sideCol #wireLog { margin-top: 8px; }
+  /* her ruling rides the desk's bottom-left corner — over the painted
+     room, never over the memo, the card, or the ledger */
+  body[data-phase="audit"] #ariaSay {
+    left: 18px; top: auto; bottom: 20px;
+    transform: none; width: min(42ch, 300px);
+  }
+  body[data-phase="audit"] #mfileBtn,
+  body[data-phase="audit"] #wireBtn { display: none; }
+}
+
+/* the handbook's postmark table — four fields, what each reads like */
+.hb-table {
+  width: 100%; border-collapse: collapse;
+  font-family: ui-monospace, monospace; font-size: 10px;
+  margin: 6px 0 8px;
+}
+.hb-table th, .hb-table td {
+  border: 1px solid var(--line); padding: 4px 6px;
+  text-align: left; vertical-align: top;
+}
+.hb-table th { color: var(--faint); font-weight: normal; letter-spacing: .08em; }
+
+/* narrow desk, tight stack: everything the audit needs stays above the
+   fold — the photo shrinks to a thumbnail, the memo keeps its text */
+@media (max-width: 1099px) {
+  body[data-phase="audit"] #hud { gap: 8px; padding-bottom: 8px; font-size: 10px; }
+  body[data-phase="audit"] #hud button { padding: 2px 6px; }
+  body[data-phase="audit"] #auditPhase { gap: 6px; padding-top: 2px; }
+  body[data-phase="audit"] #nightMemo { font-size: 12px; padding: 7px 10px; line-height: 1.4; }
+  body[data-phase="audit"] #caseTray { min-height: 22px; }
+  body[data-phase="audit"] .case-num { margin-bottom: 5px; padding: 3px 10px; }
+  body[data-phase="audit"] .case-photo .case-vignette { height: 54px; border-width: 3px; }
+  body[data-phase="audit"] .case-photo .case-id { width: 34px; height: 42px; top: -8px; border-width: 2px; }
+  body[data-phase="audit"] .case-card .arg { margin-bottom: 6px; }
+}
+
+/* tighter still: the HUD compresses to two short rows — the badge and
+   the shift counter say the same thing twice at this width anyway */
+@media (max-width: 640px) {
+  body[data-phase="audit"] #hud { font-size: 9px; gap: 6px; letter-spacing: .1em; }
+  body[data-phase="audit"] #dayDots, body[data-phase="audit"] #hudStrikes,
+  body[data-phase="audit"] #hudScore { padding: 2px 6px; }
+  body[data-phase="audit"] #dayDots .day-label { display: none; }
+  body[data-phase="audit"] #hud button { padding: 2px 5px; font-size: .58rem; }
+}
+
+/* the grounds row wraps tight on the narrow desk */
+@media (max-width: 640px) {
+  body[data-phase="audit"] .flag-row { gap: 4px; margin-top: 4px; }
+  body[data-phase="audit"] .flag-f { padding: 2px 6px; }
+}
+
+/* its file reads whole — a postmark you can't finish reading is no evidence */
+.mf-line { white-space: normal; overflow: visible; text-overflow: clip; padding-left: 1.6em; text-indent: -1.6em; }
+@media (max-width: 1099px) {
+  /* one postmark field per row on the narrow desk: the receipt never
+     collides with its label, and the grounds row stays above the fold */
+  body[data-phase="audit"] .case-stub { grid-template-columns: 1fr; }
+  body[data-phase="audit"] .flag-row .flag-q { flex-basis: 100%; }
+  body[data-phase="audit"] .flag-f { font-size: 10px; padding: 3px 5px; letter-spacing: .04em; }
+}
+
+/* ---------- last call & dawn sit at the same desk ---------- */
+
+/* the ledger's packet column wraps field by field — nothing clips */
+#finaleTable .c-pkt { white-space: normal; }
+#finaleTable .c-pkt .pk { white-space: nowrap; display: inline-block; }
+#finaleTable td.c-file { white-space: normal; }
+
+/* the compare's column heads: name on top, role beneath — no ellipsis */
+.rcc-who b, .rcc-who i { display: block; }
+.rcc-who i { font-style: normal; color: var(--faint); font-size: .85em; }
+@media (max-width: 480px) {
+  .rc-compare { font-size: 10.5px; }
+  .rcc-a, .rcc-b { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
+/* wide desk: the side column serves the ledger and the dawn too */
+@media (min-width: 1100px) {
+  body[data-phase="finale"] #frame, body[data-phase="dawn"] #frame {
+    max-width: 1120px; padding-left: 344px;
+  }
+  body[data-phase="finale"] #sideCol, body[data-phase="dawn"] #sideCol {
+    position: absolute; left: 18px; top: 16px; width: 292px;
+    background: rgba(7, 9, 13, .78);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; z-index: 20;
+  }
+  body[data-phase="finale"] #wireLog, body[data-phase="dawn"] #wireLog {
+    display: block; max-height: none; border-bottom: none;
+  }
+  body[data-phase="finale"] #mfileBtn, body[data-phase="finale"] #wireBtn,
+  body[data-phase="dawn"] #mfileBtn, body[data-phase="dawn"] #wireBtn { display: none; }
+  /* on the ledger ARIA annotates in flow — she never covers the docket */
+  body[data-phase="finale"] #ariaSay {
+    position: static; transform: none; width: auto;
+    margin: 6px auto 0; box-shadow: none;
+  }
+}
+
+/* narrow desk: same drawers in finale and dawn; ARIA becomes a
+   single-line ticker in flow — she annotates, she never covers */
+@media (max-width: 1099px) {
+  body[data-phase="finale"] #hud, body[data-phase="dawn"] #hud {
+    gap: 8px; padding-bottom: 8px; font-size: 10px;
+  }
+  body[data-phase="finale"] #wireLog, body[data-phase="dawn"] #wireLog { display: none; }
+  body[data-phase="finale"] #wireLog.open, body[data-phase="dawn"] #wireLog.open,
+  body[data-phase="finale"] #machineFile.open, body[data-phase="dawn"] #machineFile.open {
+    display: block;
+    position: fixed; top: 56px; left: 12px; right: 12px;
+    max-height: 44vh; overflow: auto; z-index: 60;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px;
+    opacity: 1; font-size: .72rem; line-height: 1.6;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, .6);
+  }
+  body[data-phase="finale"] #wireLog.open #wireX,
+  body[data-phase="dawn"] #wireLog.open #wireX,
+  body[data-phase="finale"] #machineFile.open #mfileX,
+  body[data-phase="dawn"] #machineFile.open #mfileX { display: block; }
+  body[data-phase="audit"] #ariaSay, body[data-phase="finale"] #ariaSay {
+    position: static; transform: none; width: auto;
+    margin: 6px auto 0; padding: 5px 10px; box-shadow: none;
+  }
+  body[data-phase="audit"] #ariaSay .aria-head,
+  body[data-phase="finale"] #ariaSay .aria-head { width: 22px; }
+  body[data-phase="audit"] #ariaSay .aria-body,
+  body[data-phase="finale"] #ariaSay .aria-body { min-width: 0; }
+  body[data-phase="audit"] #ariaText, body[data-phase="finale"] #ariaText {
+    display: block; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; max-width: 78vw;
+  }
+}
+
+/* the ledger on a narrow desk: each filing becomes a two-line block —
+   who and what on top, the whole postmark below */
+@media (max-width: 640px) {
+  #finaleTable thead { display: none; }
+  #finaleTable tr { display: block; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  #finaleTable td { display: inline; border: none; padding: 2px 8px 2px 0; white-space: normal; }
+  #finaleTable td.c-pkt { display: block; padding-top: 3px; font-size: 9px; }
+  #finaleTable td.c-file .name { display: inline; }
+  #finaleTable tr.cut { opacity: .6; }
+  #finaleTable tr.cut td { opacity: 1; }
+  /* one tidy HUD: score and the drawer buttons close up on the right */
+  body[data-phase="audit"] #hudScore, body[data-phase="finale"] #hudScore { margin-left: auto; }
+  body[data-phase="audit"] #hud button, body[data-phase="finale"] #hud button {
+    min-height: 32px; display: inline-flex; align-items: center;
+  }
+}
+
+/* the ledger sits on its own plate so the postmark reads over the lamp */
+#finaleTable {
+  background: rgba(8, 10, 14, .78);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+/* the last proof is read, not squinted at: the finale's postmarks carry
+   the same weight as a night card's stub, and the heading sits on a plate */
+#finaleTable .c-pkt { color: var(--ink, #d8d2c4); font-size: 11px; opacity: 1; }
+#finaleTable .c-pkt .pk { margin-right: 8px; }
+@media (max-width: 640px) { #finaleTable td.c-pkt { font-size: 10.5px; } }
+body[data-phase="finale"] .finale-bar {
+  background: rgba(8, 10, 14, .78); padding: 8px 10px; border-radius: 4px;
+}
+body[data-phase="finale"] .finale-lead { color: var(--ink, #d8d2c4); }
+/* an empty file and an empty wire leave no plate on the monitor */
+#sideCol:not(:has(.mf-line)):not(:has(#wireRows > *)) { display: none !important; }
+
+/* ---------- Handoff 4: the card is a paper filing on the desk ---------- */
+/* cream/manila, typed dark ink, slight edge shadow — the same paper the
+   CLOCK IN ticket is made of. Every filer gets the identical sheet. */
+.case-card {
+  --pink: #241c0e;            /* paper ink */
+  --pdim: #53492f;            /* muted ink on paper — >= 4.5:1 */
+  --pgreen: #2e6b34;          /* stamp ink on paper */
+  --pred: #a5281e;
+  background:
+    linear-gradient(173deg, #efe4c8 0%, #e9dcb9 78%, #e3d4ae 100%);
+  color: var(--pink);
+  border: 1px solid #c9b98f;
+  box-shadow:
+    0 1px 0 #b7a678 inset,
+    0 14px 26px -14px rgba(0, 0, 0, .75),
+    0 4px 8px rgba(0, 0, 0, .35);
+}
+.case-card .name { color: var(--pink); }
+.case-card .arg { color: var(--pdim); }
+.case-card .e-head .filer { color: var(--pink); }
+.case-card .e-head .filer b { color: var(--pink); }
+.case-card .echo-tag { color: #6b4a8a; }
+.case-card.stamped-human { border-color: var(--pgreen); --inkc: var(--pgreen); }
+.case-card.stamped-sus { border-color: var(--pred); --inkc: var(--pred); }
+.case-card .case-verdict.ok { color: var(--pgreen); }
+.case-card .case-verdict.bad { color: var(--pred); }
+.case-card .case-verdict.prev { color: var(--pdim); }
+.case-card .case-reason { color: #7d2a1c; }
+.case-card .case-reason::first-line { color: inherit; }
+.case-card .case-cont { color: var(--pdim); }
+.case-card .case-stamp.human { color: var(--pgreen); }
+.case-card .case-stamp.sus { color: var(--pred); }
+
+/* one filing contested — the tag says it; the hazard band is gone */
+.case-card.contested { border-color: #8a6a2f; }
+.case-card.contested::before { content: none; }
+
+/* the facts ride one line of chips — no labels, no marks */
+.fact-chips {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: 2px 7px; margin: 7px 0 0;
+  font-family: ui-monospace, monospace; font-size: 12px;
+  letter-spacing: .04em; color: var(--pink);
+}
+.fact-chips i { font-style: normal; color: var(--pdim); font-size: 10px; }
+
+/* the clerk's note — a pale-yellow slip taped to the filing, evidence now */
+.note-slip, .case-card .note-slip {
+  font-family: "Iowan Old Style", Georgia, serif;
+  font-size: 12.5px; line-height: 1.35; font-style: italic;
+  letter-spacing: .01em; color: #1d2a4a;
+  background: linear-gradient(178deg, #f6ecc0, #f0e2a4);
+  border: 1px solid #d8c57e;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, .3);
+  padding: 5px 10px 6px;
+  margin: 2px 8px 8px 22px;
+  transform: rotate(-1.3deg);
+  position: relative;
+}
+.note-slip::before {           /* the tape */
+  content: ""; position: absolute; top: -7px; left: 38%;
+  width: 34px; height: 11px;
+  background: rgba(214, 205, 172, .75);
+  border-left: 1px solid rgba(0,0,0,.12);
+  border-right: 1px solid rgba(0,0,0,.12);
+  transform: rotate(2deg);
+}
+/* "it says so here" — the slip underlines in green and reaches the field */
+.note-slip.noted {
+  animation: notepulse .9s ease-in-out 2;
+  border-bottom: 2px solid var(--pgreen);
+}
+@keyframes notepulse { 50% { box-shadow: 0 0 0 4px rgba(46,107,52,.22), 0 3px 7px rgba(0,0,0,.3); } }
+.slip-link {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 4; overflow: visible;
+}
+.slip-link path {
+  fill: none; stroke: var(--pgreen); stroke-width: 2.2;
+  stroke-linecap: round; stroke-dasharray: 5 4; opacity: .85;
+}
+
+/* the postmark — a tear-off stub at the card's foot */
+.case-card .case-stub {
+  display: block; margin-top: 11px; padding-top: 0;
+  font-size: 12px; color: var(--pink);
+  border-top: 2px dashed #b7a678;    /* the perforation */
+  position: relative;
+}
+.case-card .case-stub::before {      /* torn-fibre hint along the perf */
+  content: ""; position: absolute; top: -2px; left: 6%; right: 6%; height: 2px;
+  background: repeating-linear-gradient(90deg, #e9dcb9 0 3px, transparent 3px 7px);
+}
+.case-card .stub-head {
+  font-family: ui-monospace, monospace; font-size: 10.5px;
+  letter-spacing: .14em; color: var(--pdim);
+  margin: 7px 0 3px;
+}
+.case-card .stub-grid {
+  display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px;
+}
+@media (max-width: 620px) {
+  .case-card .stub-grid { grid-template-columns: 1fr; }
+}
+.case-stub .tel-val { font-weight: 700; font-family: ui-monospace, monospace; }
+.case-card .case-stub .tel-val.hit { color: #8a5a12; }
+.case-card [data-tel].peek { background: rgba(138, 90, 18, .12); }
+.case-card [data-tel].peek .tel-val { color: #8a5a12; }
+.case-card [data-tel].struck .tel-val::after { border-top-color: var(--pred); }
+
+/* point at it — a field is focusable and armable while the case is fresh */
+.case-card.fresh .tel-row, .case-card.flagging .tel-row { cursor: pointer; }
+.case-card .tel-row:focus-visible { outline: 1.5px dashed #8a5a12; outline-offset: 2px; }
+.tel-row.armed::after {
+  content: ""; position: absolute; inset: -4px -8px; pointer-events: none;
+  border: 2px dashed var(--pred); border-radius: 50% 46% 52% 48% / 60% 55% 50% 62%;
+  transform: rotate(-1.2deg); opacity: .85;
+  animation: armdraw .25s ease-out both;
+}
+@keyframes armdraw { from { transform: rotate(-1.2deg) scale(1.12); opacity: 0; } }
+.tel-row.explained .tel-val { box-shadow: 0 2px 0 var(--pgreen); }
+
+/* when the desk asks what flagged it, everything but the stub steps back */
+.case-card.flagging .e-head, .case-card.flagging .name,
+.case-card.flagging .arg, .case-card.flagging .case-note,
+.case-card.flagging .fact-chips {
+  opacity: .3;
+  transition: opacity .3s ease;
+}
+.case-card .flag-row .flag-q { color: var(--pink); }
+.case-card .flag-f {
+  color: #5e3d0b; border-color: #8a6a2f; background: #f4ecd8;
+}
+.case-card .flag-f:hover, .case-card .flag-f:focus-visible { background: #efe0ba; color: #3d2705; }
+
+/* the unmask — the filer's ID shot glitches out to grey static */
+.id-wrap { position: relative; display: inline-block; }
+.id-cap {
+  display: none; position: absolute; left: 50%; bottom: -9px;
+  transform: translateX(-50%) rotate(-2deg);
+  font-family: ui-monospace, monospace; font-style: normal;
+  font-size: 7.5px; font-weight: 700; letter-spacing: .1em;
+  color: var(--pred); white-space: nowrap;
+}
+.id-wrap.unmasked .id-cap { display: block; }
+.id-wrap.unmasked .case-id {
+  filter: grayscale(1) brightness(.62) contrast(.55);
+  animation: unmask .5s steps(6) both;
+}
+@keyframes unmask {
+  0% { filter: none; clip-path: inset(0 0 0 0); }
+  30% { filter: grayscale(1) brightness(1.4); clip-path: inset(0 0 62% 0); }
+  55% { filter: grayscale(1) brightness(.5); clip-path: inset(18% 0 0 0); }
+  75% { filter: grayscale(1) brightness(.9); clip-path: inset(0 0 34% 0); }
+  100% { filter: grayscale(1) brightness(.62) contrast(.55); clip-path: inset(0); }
+}
+
+/* ---------- the night summary is a tally ---------- */
+.sum-tally {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  margin: 6px 0 10px;
+}
+.sum-tile {
+  position: relative; width: 62px; text-align: center;
+  padding-top: 2px;
+}
+.sum-face {
+  width: 52px; height: 62px; object-fit: cover;
+  border: 3px solid #e9e2cb; outline: 1px solid rgba(0,0,0,.4);
+  border-radius: 2px; background: #0d1117;
+  transform: rotate(-1deg);
+}
+.sum-tile.ok .sum-face { outline-color: rgba(127,176,105,.8); }
+.sum-tile.bad .sum-face { outline-color: rgba(217,106,90,.9); }
+.sum-tile.walked .sum-face {
+  outline: 2px solid var(--red);
+  box-shadow: 0 0 0 3px rgba(217,72,59,.35);
+}
+.sum-face.unmask { transition: none; }
+.sum-face.unmasked {
+  filter: grayscale(1) brightness(.6) contrast(.55);
+  animation: unmask .5s steps(6) both;
+}
+.sum-stamp {
+  position: absolute; top: -2px; right: -2px;
+  font-family: ui-monospace, monospace; font-size: 8px; font-weight: 700;
+  letter-spacing: .08em; padding: 1px 5px;
+  border: 1.5px solid currentColor; border-radius: 3px;
+  transform: rotate(7deg); background: rgba(20,22,28,.85);
+}
+.sum-stamp.h { color: var(--green); }
+.sum-stamp.s { color: var(--red); }
+.sum-tile .id-cap {
+  position: static; display: block; transform: none;
+  margin-top: 4px; font-size: 7.5px; color: var(--red);
+}
+.sum-tile.bot:not(:has(.unmasked)) .id-cap { visibility: hidden; }
+.sum-pts {
+  font-family: ui-monospace, monospace; font-size: 17px; font-weight: 700;
+  letter-spacing: .18em; color: var(--accent); margin: 4px 0 2px;
+}
+.sum-teaser { font-size: 11px; }
+
+/* ---------- the wire lives on the CRT ---------- */
+@media (min-width: 1100px) {
+  body[data-phase="audit"] #sideCol,
+  body[data-phase="finale"] #sideCol,
+  body[data-phase="dawn"] #sideCol {
+    background: rgba(4, 12, 7, .78);
+    border: none; border-radius: 10px;
+    box-shadow:
+      inset 0 0 34px rgba(40, 160, 90, .12),
+      inset 0 0 3px rgba(140, 255, 180, .25),
+      0 6px 18px rgba(0,0,0,.5);
+    position: absolute;
+  }
+  body[data-phase="audit"] #sideCol::after,
+  body[data-phase="finale"] #sideCol::after,
+  body[data-phase="dawn"] #sideCol::after {
+    content: ""; position: absolute; inset: 0; border-radius: 10px;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg,
+      rgba(0,0,0,.16) 0 1px, transparent 1px 3px);
+    mix-blend-mode: multiply;
+  }
+  body[data-phase="audit"] #sideCol, body[data-phase="audit"] #sideCol *,
+  body[data-phase="finale"] #sideCol, body[data-phase="finale"] #sideCol *,
+  body[data-phase="dawn"] #sideCol, body[data-phase="dawn"] #sideCol * {
+    color: #9df0b0;
+    text-shadow: 0 0 6px rgba(120, 240, 160, .35);
+    border-color: transparent !important;
+  }
+  body[data-phase="audit"] #sideCol .mf-lat,
+  body[data-phase="finale"] #sideCol .mf-lat,
+  body[data-phase="dawn"] #sideCol .mf-lat { color: #d4ffdf; font-weight: 700; }
+  body[data-phase="audit"] #sideCol .wire-line:last-child,
+  body[data-phase="finale"] #sideCol .wire-line:last-child,
+  body[data-phase="dawn"] #sideCol .wire-line:last-child {
+    animation: crtflick .7s steps(3) both;
+  }
+  @keyframes crtflick {
+    0% { opacity: .2; } 40% { opacity: .9; } 55% { opacity: .4; } 100% { opacity: 1; }
+  }
+}
+/* the same phosphor skin on the narrow-screen drawers */
+@media (max-width: 1099px) {
+  body[data-phase] #wireLog.open, body[data-phase] #machineFile.open {
+    background: rgba(4, 12, 7, .92);
+    border-color: rgba(140, 255, 180, .2);
+  }
+  body[data-phase] #wireLog.open *, body[data-phase] #machineFile.open * {
+    color: #9df0b0; text-shadow: 0 0 6px rgba(120, 240, 160, .3);
+  }
+  body[data-phase] #wireLog.open .mf-lat, body[data-phase] #machineFile.open .mf-lat { color: #d4ffdf; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wire-line:last-child, .sum-face.unmasked, .id-wrap.unmasked .case-id,
+  .note-slip.noted, .tel-row.armed::after { animation: none !important; }
+}
+
+/* short desks: the whole filing, its stub, and the stamps must read
+   above the fold — shrink the photo and tighten the paper's padding */
+@media (max-height: 740px) {
+  body[data-phase="audit"] #auditPhase { gap: 4px; padding-top: 0; }
+  body[data-phase="audit"] .case-card { padding: 9px 18px 7px; }
+  body[data-phase="audit"] .case-photo { margin-bottom: 5px; }
+  body[data-phase="audit"] .case-photo .case-vignette { height: 54px; border-width: 3px; }
+  body[data-phase="audit"] .case-photo .case-id { width: 36px; height: 45px; top: -8px; border-width: 2px; }
+  body[data-phase="audit"] .case-card .name { font-size: 14px; margin: 4px 0 2px; }
+  body[data-phase="audit"] .case-card .arg { font-size: 12px; margin-bottom: 4px; }
+  body[data-phase="audit"] .note-slip { font-size: 12.5px; padding: 3px 9px 4px; margin: 1px 8px 5px 20px; }
+  body[data-phase="audit"] .fact-chips { margin-top: 3px; }
+  body[data-phase="audit"] .case-card .case-stub { margin-top: 7px; }
+  body[data-phase="audit"] .case-card .stub-head { margin: 5px 0 1px; }
+  body[data-phase="audit"] .case-stub .tel-row { line-height: 1.45; }
+  body[data-phase="audit"] .case-num { margin-bottom: 4px; padding: 2px 10px; }
+  body[data-phase="audit"] #caseBtns .vb { min-height: 44px; }
+}
+
+/* -------------------- h5: portrait on the card, hint line, summary plate -------------------- */
+/* ID photo paper-clipped to the card's top-right corner, inside the card */
+#caseCard .id-wrap {
+  position: absolute; top: 12px; right: 12px;
+  width: 46px; transform: rotate(5deg); z-index: 3;
+}
+#caseCard .id-wrap .case-id {
+  position: static; width: 46px; height: 58px;
+  transform: none; display: block; margin: 0 auto;
+  border: 1px solid rgba(50,40,20,.5);
+  box-shadow: 0 2px 5px rgba(20,14,6,.45);
+}
+#caseCard .id-wrap.unmasked .id-cap {
+  display: block; position: static; transform: none;
+  margin: 3px 0 0 -32px; width: calc(100% + 32px);
+  font: 700 8px/1.2 "JetBrains Mono", monospace; white-space: nowrap;
+  color: var(--sus-red, #a33); text-align: center; letter-spacing: .02em;
+}
+/* keep the photo clear of the name on narrow cards */
+#caseCard .case-photo { position: static; }
+/* the ink stamp moves left so both stamp and photo stay readable */
+body[data-phase="audit"] .case-card .case-stamp { right: 66px; }
+@media (max-width: 639px) {
+  #caseCard .id-wrap { top: 10px; right: 10px; width: 38px; }
+  #caseCard .id-wrap .case-id { width: 38px; height: 48px; }
+  body[data-phase="audit"] .case-card .case-stamp { right: 52px; }
+}
+
+/* fixed hint line under the stamps — no floating bubbles over evidence */
+#auditHint {
+  min-height: 15px; margin: 4px auto 0; max-width: 540px;
+  font-family: "JetBrains Mono", monospace; font-size: 10.5px;
+  letter-spacing: .04em; color: var(--muted, #8a8677);
+  text-align: center; line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* night summary on one dark translucent plate, centred in the frame */
+#auditSummary:not(.hidden) {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 46vh;
+}
+.sum-plate {
+  margin: 0 auto; padding: 18px 22px; width: fit-content; max-width: 100%;
+  background: rgba(8, 10, 14, .78); border: 1px solid rgba(130, 120, 90, .25);
+  border-radius: 4px; box-shadow: 0 6px 24px rgba(0,0,0,.5);
+  text-align: center;
+}
+.sum-tile { width: 72px; }
+.sum-tile .id-cap {
+  display: block; font: italic 700 11px/1.2 Georgia, serif;
+  color: var(--sus-red, #a33); margin-top: 2px; white-space: nowrap;
+}
+.sum-vale, .sum-vale-tease { color: rgba(214, 209, 196, .85); }
+@media (max-width: 639px) {
+  .sum-tile { width: 56px; }
+  .sum-tile .id-cap { font-size: 10px; }
+  #auditSummary:not(.hidden) { min-height: 0; margin-top: 8px; }
+}
+
+/* armed SUS label stays one line; both paddles keep the same height */
+body[data-phase="audit"] #caseBtns .vb { white-space: nowrap; }
+@media (max-width: 639px) {
+  body[data-phase="audit"] #caseBtns .vb {
+    letter-spacing: 0; font-size: 15px; padding: 0 10px;
+  }
+}
+
+/* chips wrap as whole units */
+body[data-phase="audit"] .fact-chips .fchip { white-space: nowrap; }
+body[data-phase="audit"] .fact-chips { gap: 2px; }
+body[data-phase="audit"] .fact-chips i { margin: 0 1px; font-style: normal; opacity: .5; }
+
+/* summary: the caption gets its own row; its voice is read, not guessed at */
+.sum-plate .sum-tally { margin-bottom: 26px; }
+#auditSummary .sum-plate .sum-vale.quiet { color: rgba(232, 226, 210, .92); opacity: 1; font-size: 12.5px; line-height: 1.5; }
+#auditSummary .sum-plate .sum-vale.sum-teaser { color: var(--amber, #e8b34b); font-style: normal; }
+/* the hint line finishes its sentence */
+#auditHint { white-space: normal; overflow: visible; text-overflow: clip; max-width: 62ch; margin-left: auto; margin-right: auto; line-height: 1.4; min-height: 2.8em; }

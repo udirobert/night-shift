@@ -8,16 +8,19 @@ same ARIA, same wire, no account needed.
 You work the night desk. Five filings a night, each stamped with a
 **postmark** — LATENCY · ORIGIN · RELAYS · RECEIPT. One filer is a machine
 wearing a human face, and the postmark is the only testimony: a human
-postmark is messy, a machine postmark reads too clean to be a person.
+oddity has a reason written on the paper — the machine's doesn't.
 **Spot the machine. Three strikes and you're cut.**
 
-One docket, one machine — any of the five filers could be it, seeded per
-docket, so today's face is the same face for everyone who clocks in. The
-face doesn't change across the week; **the tells do**: two obvious on
-night one, a single impossible field by night five, while the humans'
-packets tidy up around it. When the story week closes, the desk keeps
-running: **overtime** deals a fresh five-night run from a generated
-docket (a new face included) — a second daily ritual next to the week.
+One docket, one machine — it wears a **different face every night** (a
+seeded permutation of the five filers, so today's faces are the same for
+everyone who clocks in), and the face's real owner never files. Learning
+a face buys you nothing — **the tell changes class each night**: odd
+fields, then oddities that only count because the paper doesn't excuse
+them, then postmarks that read clean but contradict the card, then a
+latency repeated from its own file (**F** opens it). When the story week
+closes, the desk keeps running: **overtime** deals a fresh five-night
+run from a generated docket (new faces included) — a second daily
+ritual next to the week.
 
 ## Run it
 
@@ -37,39 +40,42 @@ python3 -m http.server 8000
   faces and the premise — one of these filers is a machine that wants to
   be filed as human, and only the postmark says otherwise. Then the
   wrongness: a person's postmark laid beside the machine's strip, five
-  aligned rows — messy latency, a real gate, a receipt that waits,
-  against a filing that arrived perfect. Then your first catch: one
+  aligned rows — lag, a real gate, a receipt that waits — against a
+  filing that didn't travel at all. Then your first catch: one
   filing on the desk — stamp it SUS and point at the field that gives
   it away. Night zero forgives a first miss: a wrong field re-asks, and
   waving the machine through costs no strike. The desk is teaching, not
   testing. That's every verb the week uses.
-- **The nights**: five filings, one at a time. The only question is *is
-  this filer the machine?* — the paper (where · when · who · in/out)
-  prints plain on the card, but it's context, not a verdict. Stamp each
-  **HUMAN** or **SUS** (`H` / `S` / `←` / `→` / buttons).
-  - **HUMAN** on a person: upheld, +50. One filing a night is
-    **contested** — call it right for double pay.
-  - **HUMAN** on the machine: it walks through — and the mark is on your
-    counter, not its file. The stakes are **symmetric**: a wrong stamp is
-    a strike, either direction. Only reading the postmark is free.
-  - **SUS** is an accusation, and an accusation needs grounds: the desk
-    asks which postmark field reads wrong. Point at a **real tell** and
-    the catch is yours (+100 bounty, circled in red grease pencil). Point
-    at a human's field — or name no grounds — and the hunch is a wrong
-    stamp, and a wrong stamp is a **strike** (the field you named is
-    struck through). The grounds row looks identical on every SUS, so it
-    is not itself a tell: only the postmark can hold an accusation.
+- **The nights**: five filings, one at a time, each a paper card with a
+  taped clerk's note and a tear-off postmark stub. The only question is
+  *is this filer the machine?*
+  - **Circle, then stamp.** Click a postmark field (or press `1`–`4`) and
+    the grease pencil rings it; the button reads `SUS · ORIGIN`. Stamp
+    **SUS** and that field is your accusation. Circle the real tell and
+    the catch is yours (+100) — the ID photo unmasks: *IT WORE TESS*.
+    Stamp SUS with nothing circled and the desk asks which field.
+  - **HUMAN** on a person: upheld, +50. One filing a night is tagged
+    **DOUBLE PAY**.
+  - **A wrong stamp is a strike, either direction**: accuse a person, or
+    wave the machine through (the desk circles what you missed in red).
+    Accuse a person whose note explains the oddity and the card draws
+    the line from the note to the field.
 - **The postmark** is four fields, printed at the foot of every card —
   the same muted strip for every filer, nothing flagged:
-  - `LATENCY` — round-trip time. Machines answer before the lamp warms.
-  - `ORIGIN` — where the packet was sent from. A gate named zero is not
-    a person's door.
-  - `RELAYS` — hops the filing crossed. Humans route; machines don't.
-  - `RECEIPT` — delay between post and receipt. Lateness is human. A
-    receipt stamped before its post is not.
-  Everything else on the card is texture: the clerk's marginal note, the
-  off-square drop, the quiet landing — every filer draws from the same
-  pool, so none of it is a signature. The postmark is the only testimony.
+  - `LATENCY` — round-trip time. A person waits 100ms+ on the wire.
+  - `ORIGIN` — `EXT GATE` is an indoor line, `STREET BOX` is outdoors;
+    `GATE 0` is inside this building.
+  - `RELAYS` — hops the filing crossed. A person's paper crosses 2–5.
+  - `RECEIPT` — when the desk receipted it: after the filing, or it
+    never travelled.
+  The rule of the desk: **every human oddity has an excuse written on
+  the paper** — the clerk's marginal note. An odd field *with* its
+  excuse is a person being human; an odd field *without* one is the
+  machine. Later nights ask more: a `STREET BOX` on an indoor card, a
+  receipt stamped before the filing existed, a latency the machine has
+  already filed — check its file (`F`). Everything else is texture:
+  the off-square drop, the quiet landing — every filer draws from the
+  same pool, so none of it is a signature.
 - **Strikes**: the stakes are symmetric — a wrong stamp is a strike,
   either direction: wave the machine through (HUMAN) or accuse a person
   on grounds that fail (SUS). Three strikes cut you to jury duty at the
@@ -91,7 +97,7 @@ python3 -m http.server 8000
   sealed rule, file the one card she'd pass — the deduction half of the
   game, kept off the week's spine. A passing card survives; a failing one
   is a strike.
-- **The Machine's Shift**: clear overtime and the title offers the
+- **The Machine's Shift**: finish a week — any ending — and the title offers the
   inversion — three generated nights where *you* file the proofs, playing
   the thing the week was hunting. Filing still asks you to satisfy the
   sealed rule, but then the night audit turns inside out: your own
@@ -102,9 +108,9 @@ python3 -m http.server 8000
   a stub polished *too* clean (overrehearsed reads as fake). Endings:
   **UNVERIFIED** (slipped all three — the wire filed you as human),
   **REVIEWED**, or **CAUGHT**.
-- Keys: `H`/`S` or `←`/`→` stamp · `Enter` file/continue · `1`–`4`
-  select or patch (overtime/machine) · `Shift` focus loupe (overtime/machine)
-  · `O` oath · `M` audio · `?` the handbook.
+- Keys: `1`–`4` circle a postmark field · `H`/`S` or `←`/`→` stamp ·
+  `Enter` continue · `1`–`4` also select or patch (overtime/machine) · `Shift` focus loupe (overtime/machine)
+  · `O` oath · `F` the machine's file · `M` audio · `?` the handbook.
 
 ## Seeds & sharing
 

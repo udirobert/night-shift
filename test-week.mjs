@@ -55,7 +55,7 @@ async function workNight() {
     window.renderCase();
     await sleep(120);
     const sub = G().auditSubs[i];
-    if (sub.filer === G().culprit) {
+    if (sub.bot) {
       window.stamp("SUS");
       await sleep(150);
       const tell = sub.tel.tells[0];

@@ -155,15 +155,20 @@
       </section>
       <section><h4>THE NIGHT — SPOT THE MACHINE</h4>
         <p>Five filings a night. One is a machine. Stamp each <b>HUMAN</b> or <b class="hb-red">SUS</b> — the only question is: is this filer the machine?</p>
-        <p><kbd>S</kbd>/<kbd>←</kbd> SUS · <kbd>H</kbd>/<kbd>→</kbd> HUMAN. Stamp SUS and name the postmark field that reads wrong — point at a real tell and the catch is yours (<b>+100</b>). The stakes are symmetric: <b>a wrong stamp is a strike, either direction</b> — wave the machine through, accuse a person on thin grounds, and the mark is yours. Three strikes and you're cut.</p>
+        <p><kbd>1–4</kbd> circle a postmark field · <kbd>S</kbd>/<kbd>←</kbd> SUS · <kbd>H</kbd>/<kbd>→</kbd> HUMAN · <kbd>F</kbd> its file. Circle the field that reads wrong, then stamp SUS — a real tell is the catch (<b>+100</b>). The stakes are symmetric: <b>a wrong stamp is a strike, either direction</b> — wave the machine through, accuse a person on thin grounds, and the mark is yours. Three strikes and you're cut.</p>
         <p>One filing is contested — right pays double. A flawless night earns <b>NIGHT CLEAR</b>.</p>
       </section>
       <section><h4>THE POSTMARK — THE ONLY TESTIMONY</h4>
-        <p class="hb-mono">LATENCY — round-trip time. Machines answer before the lamp warms.</p>
-        <p class="hb-mono">ORIGIN — where the packet was sent from. A gate named zero is not a person's door.</p>
-        <p class="hb-mono">RELAYS — hops the filing crossed. Humans route; machines don't.</p>
-        <p class="hb-mono">RECEIPT — delay between post and receipt. Lateness is human. A receipt before its post is not.</p>
-        <p>The tell is one sentence: <b>it reads too clean to be a person.</b></p>
+        <table class="hb-table">
+          <tr><th>field</th><th>a person</th><th>odd</th><th>the excuse on the paper</th></tr>
+          <tr><td>LATENCY</td><td>110ms+</td><td>3–28ms, or one already in its file</td><td>lobby terminal</td></tr>
+          <tr><td>ORIGIN</td><td>matches the card — EXT GATE indoors, STREET BOX out</td><td>GATE 0, or the wrong kind</td><td>walked in</td></tr>
+          <tr><td>RELAYS</td><td>2–5</td><td>0</td><td>hand-delivered</td></tr>
+          <tr><td>RECEIPT</td><td>after the filing</td><td>before the filing · no delay</td><td>priority queue</td></tr>
+        </table>
+        <p>STREET BOX = outdoors · EXT GATE = indoors.</p>
+        <p>Nothing is received before it is filed.</p>
+        <p>It never files a new number twice — its file (<kbd>F</kbd>) keeps them.</p>
       </section>
       <section><h4>THE DESK</h4>
         <p><kbd>?</kbd> this card · <kbd>M</kbd> mute · tap a stamped case to continue.</p>
@@ -249,7 +254,7 @@
       <rect x="0" y="0" width="640" height="300" filter="url(#paperGrain)" opacity=".06"/>
     </svg>
     </div>
-    <p class="sub">One of the five is a machine. Only the postmark gives it away — and you're the only clerk who can read it.</p>
+    <p class="sub">One of the five is a machine. A person's oddity has a reason written on the paper. Its doesn't.</p>
     <!-- first read: the verb pair. second: resume/career. third: alternates.
          The how-to lives in the night-zero beats now — the title says one thing. -->
     <div class="resume-slot" id="resumeSlot"></div>
@@ -261,9 +266,9 @@
       </button>
       <button id="randomBtn" class="ghost read-3" data-tip="A shuffled docket, just for this run — not today's shared one">Random docket</button>
       <button id="otTitleBtn" class="ghost read-3 hidden" data-tip="Endless mode: five more nights on generated rules, a fresh run every time">Overtime (endless)</button>
-      <button id="machineTitleBtn" class="ghost locked read-3" data-tip="File like you belong — fool the wire as the machine. Locked until you clear overtime.">🔒 The Machine's Shift</button>
+      <button id="machineTitleBtn" class="ghost locked read-3" data-tip="File like you belong — fool the wire as the machine. Finish a week, any ending, to unlock it.">🔒 The Machine's Shift</button>
     </div>
-    <p class="legend">Three wrong stamps — either direction — and you're cut. <kbd>?</kbd> opens the handbook.</p>
+    <p class="legend">Three wrong stamps and you're cut. · <kbd>?</kbd> handbook</p>
     <p class="career-line hidden" id="careerLine"></p>
     <div class="title-foot">
       <p class="music-credit">music · <a href="https://weloveindies.com" rel="noopener">WeLoveIndies</a> (F/demo license)</p>
@@ -282,10 +287,23 @@
       <div id="dayDots"></div>
       <span id="hudStrikes"></span>
       <span id="hudScore"></span>
+      <button id="mfileBtn" class="hidden" type="button" data-tip="every postmark the machine has filed — F toggles">its file · 0</button>
+      <button id="wireBtn" type="button" data-tip="the wire — tonight's events, in order">wire</button>
     </header>
 
-    <!-- the desk remembers: tonight's events, in order, never erased -->
-    <div id="wireLog" aria-hidden="true"></div>
+    <!-- the desk remembers: tonight's events, in order, never erased.
+         On the wide desk these sit in the left column; on the narrow one
+         they close behind the HUD buttons and open as drawers. -->
+    <div id="sideCol">
+      <div id="machineFile" class="hidden" aria-label="the machine's file">
+        <button id="mfileX" class="drawer-x" type="button" aria-label="Close the machine's file">✕</button>
+        <div id="mfRows"></div>
+      </div>
+      <div id="wireLog" class="empty" aria-hidden="true">
+        <button id="wireX" class="drawer-x" type="button" aria-label="Close the wire log">✕</button>
+        <div id="wireRows"></div>
+      </div>
+    </div>
 
     <!-- the one instruction per screen — "what do I do right now" -->
     <p id="instr"></p>
@@ -389,13 +407,13 @@
       </div>
       <!-- the night's paperwork, made visible: what's still in the pile
            vs what's been stamped and filed. Decorative — CASE n/m says it. -->
+      <p id="nightMemo" class="read-2 hidden"></p>
       <div id="caseTray" class="hidden" aria-hidden="true">
         <span class="tray-label">PILE</span>
         <span class="tray-pile" id="trayPile"></span>
         <span class="tray-arrow">→</span>
         <span class="tray-filed" id="trayFiled"></span>
       </div>
-      <p id="nightMemo" class="read-2 hidden"></p>
       <div id="amendBanner" class="hidden"><div class="amend-panel"><b>⚠ AMENDMENT</b><span id="amendNote"></span><span id="amendGhost" class="hidden"></span><span class="amend-ack">— press or tap to acknowledge —</span></div></div>
       <div id="caseCard"></div>
       <div id="caseBtns">
@@ -403,6 +421,7 @@
         <button id="humanBtn" class="vb h shift-paddle-right" data-tip="Stamp HUMAN — this filer is a person. Wave the machine through and it costs a strike too. Three wrong stamps, either direction, and the desk cuts you. (H or →)">HUMAN <span class="stamp-ring h" aria-hidden="true">H</span></button>
         <div id="auditKeyHint" class="keyhint hidden">← SUS · → HUMAN · ↵</div>
       </div>
+      <div id="auditHint" aria-live="polite"></div>
       <div id="auditSummary" class="hidden"></div>
       <div id="auditActions"></div>
     </section>
@@ -412,7 +431,7 @@
       <div id="finaleWrap">
         <div class="finale-bar">
           <h3 class="sec-head">The machine's final proof</h3>
-          <p class="finale-lead">Five filings. One is the machine — read its postmark. Sign the clause that cuts only it, or sign the one that lets it belong.</p>
+
         </div>
         <table id="finaleTable">
           <thead><tr>

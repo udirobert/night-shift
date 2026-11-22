@@ -64,13 +64,13 @@ await sleep(300);
 
 const subs = G().auditSubs;
 ok("night dealt 5 filings", subs.length === 5);
-ok("exactly one machine case", subs.filter((s) => s.filer === G().culprit).length === 1);
+ok("exactly one machine case", subs.filter((s) => s.bot).length === 1);
 
-const botIdx = subs.findIndex((s) => s.filer === G().culprit);
+const botIdx = subs.findIndex((s) => s.bot);
 ok("machine postmark carries 1–4 seeded tells", subs[botIdx].tel.tells.length >= 1 && subs[botIdx].tel.tells.length <= 4);
 
 const score0 = G().score, strikes0 = G().strikes;
-const humanIdx = subs.findIndex((s) => s.filer !== G().culprit);
+const humanIdx = subs.findIndex((s) => !s.bot);
 const otherHumanIdx = subs.findIndex((s, i) => i !== botIdx && i !== humanIdx);
 
 /* 1 — SUS on a human needs grounds, and the grounds fail: a strike.
@@ -145,6 +145,97 @@ window.flagField(wrongField);
 await sleep(400);
 ok("hunch on the machine is a wrong stamp", G().auditSubs[botIdx].correct === false);
 ok("hunch does not strike the clerk", G().strikes === strikesBeforeHunch);
+
+/* 6 — point at it: circle the real tell, then SUS resolves it in one go */
+const resetSub = (i) => window.eval(
+  `const s = G.auditSubs[${i}]; s.pick=null; s.correct=null; s.earned=0; s.pendingFlag=false; s.flagKey=null; s.flagTried=false; s.armed=null; G.auditIdx=${i}; G.auditLocked=false;`);
+const vc0 = G().valeCaught;
+resetSub(botIdx);
+window.renderCase();
+await sleep(200);
+window.eval(`G.auditSubs[${botIdx}].armed = G.auditSubs[${botIdx}].tel.tells[0];`);
+window.renderCase();
+ok("armed field rings on the card", !!$(".tel-row.armed"));
+ok("SUS button names the circled field",
+  $("#susBtn").textContent.includes("SUS") && $("#susBtn").textContent.includes("·"));
+const scoreArm = G().score, strikesArm = G().strikes;
+window.stamp("SUS");
+await sleep(400);
+ok("arm + SUS is the catch — no menu", G().auditSubs[botIdx].correct === true && G().auditSubs[botIdx].pendingFlag === false);
+ok("arm + SUS pays the bounty", G().score === scoreArm + 100 && G().valeCaught === vc0 + 1);
+ok("arm + SUS on a real tell costs no strike", G().strikes === strikesArm);
+clickCard();
+await sleep(2500);
+
+/* 7 — arm + SUS on a human field is a strike */
+resetSub(humanIdx);
+window.renderCase();
+await sleep(200);
+const strikesPre = G().strikes;
+window.eval(`G.auditSubs[${humanIdx}].armed = "latency";`);
+window.stamp("SUS");
+await sleep(400);
+ok("armed accusation on a person strikes", G().strikes === strikesPre + 1 && G().auditSubs[humanIdx].correct === false);
+clickCard();
+await sleep(600);
+
+/* 8 — arm then HUMAN on a human: upheld, no flag recorded */
+resetSub(otherHumanIdx);
+window.renderCase();
+await sleep(200);
+window.eval(`G.auditSubs[${otherHumanIdx}].armed = "receipt";`);
+const payArm = G().score;
+window.stamp("HUMAN");
+await sleep(1800);
+ok("armed field cleared by HUMAN stamp", G().auditSubs[otherHumanIdx].correct === true && G().score > payArm);
+ok("HUMAN records no flag", !G().auditSubs[otherHumanIdx].flagTried && !G().auditSubs[otherHumanIdx].flagKey);
+
+/* 9 — keys 1–4 circle the right fields */
+window.eval(`SEED = "arm-${Date.now() % 1000}"; G.coldOpen = false; G.day = 0; G.strikes = 0; G.auditLocked = false; startAudit();`);
+await sleep(300);
+for (let g = 0; g < 6 && window.eval("briefOpen"); g++) { // queued briefs eat one key each
+  window.eval("endBrief()");
+  await sleep(160);
+}
+const KEYS = ["latency", "origin", "hops", "receipt"];
+for (let i = 0; i < 4; i++) {
+  window.eval(`G.auditSubs[0].armed = null; if (typeof endBrief === "function" && briefOpen) endBrief();`);
+  await sleep(160); // a live brief swallows one key — let the dismiss land first
+  d.dispatchEvent(new window.KeyboardEvent("keydown", { key: String(i + 1), bubbles: true }));
+  await sleep(120);
+  ok(`key ${i + 1} circles ${KEYS[i]}`, G().auditSubs[0].armed === KEYS[i]);
+}
+
+/* — no pre-decision leaks: before a stamp resolves, the machine's card
+ * is indistinguishable from a person's. The only testimony is the
+ * postmark against the paper. */
+const leakBot = G().auditSubs.findIndex((s) => s.bot);
+const leakHuman = G().auditSubs.findIndex((s) => !s.bot);
+window.eval(`G.auditIdx = ${leakBot}; G.auditLocked = false;`);
+window.eval(`const b = G.auditSubs[${leakBot}]; b.pick=null; b.correct=null; b.pendingFlag=false; b.flagKey=null; b.flagTried=false;`);
+window.renderCase();
+// contested lands on a seeded seat — a human's or the machine's alike —
+// so it's texture, not a signature; the compare looks past it
+const normCls = (c) => c.split(/\s+/).filter((x) => x && !["fresh", "clean-drop", "contested"].includes(x)).sort().join(" ");
+const botCardCls = normCls($(".case-card").className), botFrameCls = d.getElementById("frame").className;
+window.eval(`G.auditIdx = ${leakHuman}; G.auditLocked = false;`);
+window.eval(`const h = G.auditSubs[${leakHuman}]; h.pick=null; h.correct=null; h.pendingFlag=false; h.flagKey=null; h.flagTried=false;`);
+window.renderCase();
+ok("unstamped machine card carries no bot-only class",
+  normCls($(".case-card").className) === botCardCls);
+ok("frame carries no bot-only class before a stamp",
+  d.getElementById("frame").className === botFrameCls);
+
+/* — tilt and clean-drop are dealt to every seat from the same rng —
+ * neither is a signature over 200 re-deals. */
+const tilts = new Set(), drops = new Set();
+for (let i = 0; i < 200; i++) {
+  window.eval(`SEED = "nleak-${i}"; G.coldOpen = false; G.day = 1; G.auditLocked = false; startAudit();`);
+  const b = G().auditSubs.find((s) => s.bot);
+  tilts.add(b.tilt); drops.add(b.cleanDrop);
+}
+ok("machine tilt is dealt like a person's (not constant)", tilts.size > 1);
+ok("machine clean-drop varies across deals", drops.size === 2);
 
 console.log(fail ? `NIGHT FAIL — ${fail} broken, ${pass} ok` : `NIGHT PASS — ${pass} checks`);
 console.log("JS errors:", errors.length ? errors : "none");

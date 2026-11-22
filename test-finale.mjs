@@ -91,21 +91,27 @@ for (let t = 0; t < 12; t++) {
   ok(`seed ${t}: the finale carries the machine's last words`,
     VALE_ARC.length > 0 && valeLine.includes(VALE_ARC[VALE_ARC.length - 1]) && valeLine.includes(culprit));
 
-  // the machine wears a seeded face; on the finale night (night 4) it
-  // carries exactly ONE residual tell — the field is seeded, so the test
-  // must find it, not assume which one. The tell is an impossible value:
-  // a zero-time packet, gate zero, zero relays, or a receipt before post.
+  // the machine wears the culprit's face; on the last call it carries
+  // exactly ONE unexcused oddity — the field is seeded, so the test must
+  // find it via the same grounds the week taught, not assume which one.
   const crow = rows.find((r) => r.filer === culprit);
+  const groundsOf = (r) => LOGIC().grounds(r, r.filedMin, r.tel, r.note, []);
   const tells = (crow.tel.tells || []);
-  const MACHINE = { latency: "0.0ms", origin: "GATE 0", hops: "0" };
-  const isMachine = (k, v) =>
-    (k === "receipt" ? /before post|\+0\.000s/.test(v) : MACHINE[k] === v);
-  ok(`seed ${t}: the machine carries one impossible postmark field`,
-    tells.length === 1 && isMachine(tells[0], crow.tel[tells[0]]));
-  // and every OTHER field reads human, so the tell is what separates it
-  const otherFields = ["latency", "origin", "hops", "receipt"].filter((k) => k !== tells[0]);
-  ok(`seed ${t}: the machine's other fields read human`,
-    otherFields.every((k) => !isMachine(k, crow.tel[k])));
+  ok(`seed ${t}: the machine's row has exactly one ground`,
+    groundsOf(crow).length === 1);
+  ok(`seed ${t}: the machine's ground IS its tell`,
+    tells.length === 1 && groundsOf(crow)[0] === tells[0]);
+  // and no human row carries a ground — the tell is what separates it
+  ok(`seed ${t}: every human row reads clean of grounds`,
+    rows.filter((r) => r !== crow).every((r) => groundsOf(r).length === 0));
+  // humans file normal for their card: latency 110ms+, relays 2-5,
+  // receipt after filing, origin type matching the card's setting
+  ok(`seed ${t}: every human row is normal for its card`,
+    rows.filter((r) => r !== crow).every((r) =>
+      parseInt(r.tel.latency) >= 110 &&
+      +r.tel.hops >= 2 && +r.tel.hops <= 5 &&
+      ["latency", "origin", "hops", "receipt"].every((k) =>
+        !LOGIC().oddField(k, r.tel, r.filedMin))));
 
   // sign the good clause → LAST HUMAN STANDING
   G().finaleChoice = good[0];

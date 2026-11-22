@@ -403,7 +403,7 @@ function buildFinale(rng, cards, culprit) {
     const others = FILERS.filter((f) => f !== culprit);
     const byId = (id) => cards.find((x) => x.id === id);
     const rows = [
-      { filer: culprit, c: byId("late-train"), ts: "+0.003s" },
+      { filer: culprit, c: byId("late-train"), ts: "+0h07m" },
       { filer: others[0], c: byId("cafe-morning"), ts: "+2h05m" },
       { filer: others[1], c: byId("fisher-dawn"), ts: "+0h51m" },
       { filer: others[2], c: byId("couple-cooking"), ts: "+6h30m" },
@@ -491,8 +491,9 @@ function buildFinale(rng, cards, culprit) {
       const m = /\+(\d+)h(\d+)m/.exec(ts);
       return !!m && (+m[1]) * 60 + (+m[2]) >= 30;
     };
+    const machineTs = `+0h0${1 + ri(rng, 8)}m`; // early, not impossible — still under the late bar
     const rows = [culpritCard, ...humans].map((c, i) => {
-      const ts = i === 0 ? "+0.003s" : tsPool[i - 1];
+      const ts = i === 0 ? machineTs : tsPool[i - 1];
       return {
         filer: i === 0 ? culprit : FILERS.filter((f) => f !== culprit)[i - 1],
         name: c.name, glyph: c.glyph,
@@ -708,12 +709,268 @@ function forgeJudge(tiers, proofOk, nightIdx) {
     reason: `the wire counted ${suspicion} tells against a tolerance of ${FORGE_THRESHOLD[nightIdx]}` };
 }
 
+// ---------- night postmarks: the tell system ----------
+/* Every human oddity has an excuse written on the paper; the machine's
+ * doesn't. The tell CLASS shifts each night:
+ *   d0 ODD           two impossible fields, neutral note
+ *   d1 UNEXCUSED     one odd field, neutral note — a person carries the
+ *                    same oddity WITH its excuse written on the paper
+ *   d2 CONTRADICTION clean-looking postmark that contradicts the story
+ *                    (an outdoor gate on an indoor filing, or a receipt
+ *                    stamped before the filing existed)
+ *   d3 REPEAT        clean postmark — but its latency is a number it
+ *                    already filed (open its file)
+ *   d4 ANY           one of the above, seeded — note may be a mismatched
+ *                    excuse as a trap
+ * Humans NEVER carry valid grounds; the machine carries exactly its
+ * tells. All deterministic from the rng passed in. */
+const TEL_KEYS = ["latency", "origin", "hops", "receipt"];
+const TEL_LABELS = { latency: "LATENCY", origin: "ORIGIN", hops: "RELAYS", receipt: "RECEIPT" };
+const NEUTRAL_NOTES = [
+  "re-filed after rejection", "third filing this cycle",
+  "witness signature smudged", "forwarded from intake",
+  "annotated in the margins", "returned for correction ×1",
+];
+const EXCUSE_NOTES = {
+  latency: "lobby terminal — filed on the house wire",
+  origin: "walked in — filed at the front gate",
+  hops: "hand-delivered — no relays crossed",
+  receipt: "priority queue — receipted on arrival",
+};
+const NIGHT_MEMO = [
+  "One of five isn't a person. Its postmark is odd.",
+  "People are odd too — but their paper says why.",
+  "Tonight it looks ordinary. Check the postmark against the story.",
+  "It's out of new numbers. Check its file. (F)",
+  "Last night. Every trick, once more.",
+];
+function fmtMin(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return `+${h}h${String(m).padStart(2, "0")}m`;
+}
+function parseMin(str) {
+  const m = /\+(\d+)h(\d+)m/.exec(str || "");
+  return m ? (+m[1]) * 60 + (+m[2]) : null;
+}
+function latencyMs(v) {
+  const m = /^([\d.]+)ms$/.exec(v || "");
+  return m ? parseFloat(m[1]) : null;
+}
+/* is this field's value something a person could not file? (odd, before
+ * the excuse question — grounds() layers the note on top) */
+function oddField(k, tel, filedMin) {
+  if (k === "latency") { const ms = latencyMs(tel.latency); return ms !== null && ms < 110; }
+  if (k === "origin") return tel.origin === "GATE 0";
+  if (k === "hops") return parseInt(tel.hops, 10) < 2;
+  if (k === "receipt") { const r = parseMin(tel.receipt); return r !== null && r <= filedMin; }
+  return false;
+}
+/* the valid grounds for an accusation on this postmark:
+ *  (a) an odd value with no matching excuse written on the paper
+ *  (b) an origin type that contradicts the card's story
+ *  (c) a receipt stamped before the filing existed
+ *  (d) a latency identical to one already in the machine's file */
+function grounds(card, filedMin, tel, note, machineFile) {
+  const out = [];
+  const indoor = card && card.tags ? card.tags.setting === "indoor" : true;
+  for (const k of TEL_KEYS) {
+    let g = false;
+    if (k === "origin") {
+      const street = /^STREET BOX/.test(tel.origin);
+      const ext = /^EXT GATE/.test(tel.origin);
+      if ((street && indoor) || (ext && !indoor)) g = true;                    // (b)
+      if (tel.origin === "GATE 0" && note !== EXCUSE_NOTES.origin) g = true;   // (a)
+    } else if (k === "receipt") {
+      const r = parseMin(tel.receipt);
+      if (r !== null && r < filedMin) g = true;                                // (c)
+      if (r !== null && r <= filedMin && note !== EXCUSE_NOTES.receipt) g = true; // (a)
+    } else if (k === "latency") {
+      if ((machineFile || []).some((e) => e.tel && e.tel.latency === tel.latency)) g = true; // (d)
+      const ms = latencyMs(tel.latency);
+      if (ms !== null && ms < 110 && note !== EXCUSE_NOTES.latency) g = true;  // (a)
+    } else if (k === "hops") {
+      if (parseInt(tel.hops, 10) < 2 && note !== EXCUSE_NOTES.hops) g = true;  // (a)
+    }
+    if (g) out.push(k);
+  }
+  return out;
+}
+/* the verdict names the logic that made the field a ground */
+function explainGround(k, card, filedMin, tel, note, machineFile) {
+  const L = TEL_LABELS[k];
+  if (k === "receipt") {
+    const r = parseMin(tel.receipt);
+    if (r !== null && r < filedMin)
+      return `${L} ${tel.receipt} — before it was filed`;
+    return `${L} ${tel.receipt} — unexplained`;
+  }
+  if (k === "origin") {
+    const indoor = card && card.tags ? card.tags.setting === "indoor" : true;
+    const street = /^STREET BOX/.test(tel.origin);
+    const ext = /^EXT GATE/.test(tel.origin);
+    if ((street && indoor) || (ext && !indoor))
+      return `${L} ${tel.origin} — on ${indoor ? "an indoor" : "an outdoor"} filing`;
+    return `${L} ${tel.origin} — unexplained`;
+  }
+  if (k === "latency") {
+    const e = (machineFile || []).find((x) => x.tel && x.tel.latency === tel.latency);
+    if (e) return `${L} ${tel.latency} — it filed that on night ${e.night}`;
+    return `${L} ${tel.latency} — unexplained`;
+  }
+  return `${L} ${tel[k]} — unexplained`;
+}
+/* the machine changes faces: a seeded permutation of the five filers —
+ * on night d it wears nightFaces[d]; the real owner never files. */
+function nightFaces(rng, filers, culprit) {
+  const p = shuffle(rng, filers);
+  if (p[0] === culprit) [p[0], p[1]] = [p[1], p[0]];
+  return p;
+}
+/* the five postmarks for one night, parallel to `cases`.
+ * cases[i].bot marks the machine; cases[i].card.tags.setting picks the
+ * plausible gate. Returns { filedMin, tel:{latency,origin,hops,receipt,
+ * tells}, note } — tells is exactly grounds() on the machine's postmark,
+ * empty for every person. */
+function dealPostmarks(cases, d, machineFile, rng = Math.random) {
+  const mf = machineFile || [];
+  const fileLat = new Set(mf.map((e) => e.tel && e.tel.latency).filter(Boolean));
+  const tonight = new Set();   // no two filings share a latency tonight
+  const avoid = new Set([...fileLat]);
+  const subs = cases.map(() => ({ filedMin: 40 + ri(rng, 500) }));
+
+  const drawLat = (lo, hi) => {
+    let v, guard = 0;
+    do { v = `${lo + ri(rng, hi - lo + 1)}ms`; guard++; } while ((avoid.has(v) || tonight.has(v)) && guard < 300);
+    if (avoid.has(v) || tonight.has(v)) {
+      let base = lo;
+      while (avoid.has(`${base}ms`) || tonight.has(`${base}ms`)) base++;
+      v = `${base}ms`;
+    }
+    tonight.add(v);
+    return v;
+  };
+  const normalLat = () =>
+    drawLat(Math.max(110, 150 - d * 12), Math.max(110, 150 - d * 12) + Math.max(180, 350 - d * 30) - 1);
+  const oddLat = () => drawLat(3, 28);
+  const normalOrigin = (setting) =>
+    setting === "indoor" ? `EXT GATE ${1 + ri(rng, 6)}` : `STREET BOX ${1 + ri(rng, 6)}`;
+  const contraOrigin = (setting) =>
+    setting === "indoor" ? `STREET BOX ${1 + ri(rng, 6)}` : `EXT GATE ${1 + ri(rng, 6)}`;
+  const normalHops = () => `${2 + ri(rng, 4)}`;
+  const normalReceipt = (filedMin) =>
+    `rcvd ${fmtMin(filedMin + 1 + ri(rng, 9))}` +
+    (rng() < 0.35 ? (rng() < 0.5 ? " · resent ×2" : " · queued") : "");
+  const oddVal = (k, filedMin) =>
+    k === "latency" ? oddLat()
+      : k === "origin" ? "GATE 0"
+      : k === "hops" ? "0"
+      : `rcvd ${fmtMin(filedMin)} · no delay`;
+  const setting = (i) => (cases[i].card.tags || {}).setting || "indoor";
+
+  // the night's class, by the design's table
+  const excusedWanted = [0, 1, 1, 1, 2][d] || 0;
+  const humanIdx = cases.map((c, i) => i).filter((i) => !cases[i].bot);
+  const excused = new Map();
+  shuffle(rng, humanIdx).slice(0, excusedWanted)
+    .forEach((i) => excused.set(i, pick(rng, TEL_KEYS)));
+  const botI = cases.findIndex((c) => c.bot);
+
+  // the machine's plan for the night
+  const eligibleFileLat = () =>
+    mf.filter((e) => e.tel && latencyMs(e.tel.latency) !== null && latencyMs(e.tel.latency) >= 110)
+      .map((e) => e.tel.latency);
+  let plan = { kind: "odd", fields: shuffle(rng, TEL_KEYS).slice(0, d === 0 ? 2 : 1), note: null };
+  if (d === 2) plan = { kind: "contra", fields: [rng() < 0.5 ? "origin" : "receipt"], note: null };
+  else if (d === 3) plan = { kind: "repeat", fields: ["latency"], note: null };
+  else if (d === 4) {
+    const kind = pick(rng, ["odd", "contra", "repeat"]);
+    plan = { kind, fields: kind === "odd" ? [pick(rng, TEL_KEYS)]
+      : kind === "contra" ? [rng() < 0.5 ? "origin" : "receipt"] : ["latency"], note: null };
+    // the mismatch trap: an excuse written for a DIFFERENT field
+    if (kind === "odd" && rng() < 0.5)
+      plan.note = EXCUSE_NOTES[pick(rng, TEL_KEYS.filter((k) => k !== plan.fields[0]))];
+  }
+  // a repeat with an empty file can't stand — fall back to an odd field
+  if (plan.kind === "repeat" && !eligibleFileLat().length)
+    plan = { kind: "odd", fields: [pick(rng, TEL_KEYS)], note: null };
+
+  cases.forEach((c, i) => {
+    const s = subs[i];
+    const isBot = !!c.bot;
+    const tel = {
+      latency: normalLat(), origin: normalOrigin(setting(i)),
+      hops: normalHops(), receipt: normalReceipt(s.filedMin), tells: [],
+    };
+    let note = pick(rng, NEUTRAL_NOTES);
+    if (isBot) {
+      if (plan.kind === "odd") {
+        for (const k of plan.fields)
+          tel[k] = k === "latency" ? oddLat() : oddVal(k, s.filedMin);
+      } else if (plan.kind === "contra") {
+        if (plan.fields[0] === "origin") tel.origin = contraOrigin(setting(i));
+        else tel.receipt = `rcvd ${fmtMin(s.filedMin - 1 - ri(rng, 9))}`;
+      } else if (plan.kind === "repeat") {
+        const v = pick(rng, eligibleFileLat());
+        tel.latency = v; tonight.add(v);
+      }
+      if (plan.note) note = plan.note;
+    } else if (excused.has(i)) {
+      const k = excused.get(i);
+      tel[k] = k === "latency" ? oddLat() : oddVal(k, s.filedMin);
+      note = EXCUSE_NOTES[k];
+    }
+    tel.tells = grounds(c.card, s.filedMin, tel, note, mf);
+    s.tel = tel; s.note = note;
+  });
+  return subs;
+}
+
+/* last call's ledger: five filings on the same paper the week taught —
+ * the four humans fully normal for their card, the machine (row.bot)
+ * carrying exactly one odd, unexcused field, seeded which. Grounds are
+ * computed, never assumed: only the machine's row has any. */
+function dealFinalePostmarks(rows, rng = Math.random) {
+  const tonight = new Set();
+  const drawLat = (lo, hi) => {
+    let v, guard = 0;
+    do { v = `${lo + ri(rng, hi - lo + 1)}ms`; guard++; } while (tonight.has(v) && guard < 300);
+    if (tonight.has(v)) { let b = lo; while (tonight.has(`${b}ms`)) b++; v = `${b}ms`; }
+    tonight.add(v);
+    return v;
+  };
+  return rows.map((row) => {
+    // the receipt answers the FILED time printed on the ledger row
+    const filedMin = parseMin(row.ts) !== null ? parseMin(row.ts) : 40 + ri(rng, 500);
+    const indoor = (row.tags || {}).setting !== "outdoor";
+    const tel = {
+      latency: drawLat(110, 329),
+      origin: indoor ? `EXT GATE ${1 + ri(rng, 6)}` : `STREET BOX ${1 + ri(rng, 6)}`,
+      hops: `${2 + ri(rng, 4)}`,
+      receipt: `rcvd ${fmtMin(filedMin + 1 + ri(rng, 9))}` +
+        (rng() < 0.35 ? (rng() < 0.5 ? " · resent ×2" : " · queued") : ""),
+      tells: [],
+    };
+    const note = pick(rng, NEUTRAL_NOTES);
+    if (row.bot) {
+      const k = pick(rng, TEL_KEYS);
+      if (k === "latency") tel.latency = `${3 + ri(rng, 26)}ms`;
+      else if (k === "origin") tel.origin = "GATE 0";
+      else if (k === "hops") tel.hops = "0";
+      else tel.receipt = `rcvd ${fmtMin(filedMin)} · no delay`;
+    }
+    tel.tells = grounds(row, filedMin, tel, note, []);
+    return { filedMin, tel, note };
+  });
+}
+
 const api = {
   makeRng, passes, check, nearMiss, failKeys,
   deal, extraRuling, auditSet, ATTR_KEYS,
   critText, riddleFor, pickCulprit, buildFinale, genDays,
   FORGE_FIELDS, FORGE_TIERS, FORGE_SUSPICION, FORGE_GRANT, FORGE_CAP,
   FORGE_THRESHOLD, forgeSuspicion, forgeJudge,
+  TEL_KEYS, TEL_LABELS, NEUTRAL_NOTES, EXCUSE_NOTES, NIGHT_MEMO,
+  fmtMin, oddField, grounds, explainGround, nightFaces, dealPostmarks, dealFinalePostmarks,
 };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 if (root) root.NIGHT_SHIFT_LOGIC = api;
