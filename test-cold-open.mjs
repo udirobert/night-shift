@@ -93,7 +93,13 @@ ok("panel 1 caption: the office closes at six", /office closes at six/.test($("#
 ok("panel 1 uses the night room painting", !!$("#storyPanel .sp-art"));
 ok("five progress dots, first lit", $$(".story-dot").length === 5 && $$(".story-dot.on").length === 1);
 ok("Skip always visible", !!$("#storySkip"));
-for (let i = 0; i < 3; i++) { click(story); await sleep(150); }
+ok("panel 1: filled Next button on the caption + the tap hint",
+  !!$("#storyCap .story-next") && /Next →/.test($("#storyCap .story-next").textContent)
+  && !$("#storyHint").classList.contains("hidden"));
+click(story); await sleep(150);
+ok("panel 2 still has Next, hint shows on panel 1 only",
+  !!$("#storyCap .story-next") && $("#storyHint").classList.contains("hidden"));
+for (let i = 0; i < 2; i++) { click(story); await sleep(150); }
 ok("panels advance on tap", $$(".story-dot.on").length === 1
   && /senders isn't a person/.test($("#storyCap").textContent));
 ok("panel 4 shows all five senders with names",
@@ -103,7 +109,8 @@ ok("panel 4 glitch touches every portrait — no culprit hint",
   $$(".sp-face img.g").length === 5);
 click(story); await sleep(150);
 ok("panel 5: desk and the shift button",
-  /last one who reads them by hand/.test($("#storyCap").textContent) && !$("#storyNext").classList.contains("hidden"));
+  /last one who reads them by hand/.test($("#storyCap").textContent)
+  && /Start the shift →/.test(($("#storyCap .story-next") || {}).textContent || ""));
 // — Skip leaves the story only: lands on coach step 1
 // (walk the whole thing once so panel 5's button proves itself, then
 //  re-check Skip on a fresh panel via the replay path below)
@@ -113,6 +120,9 @@ ok("story Skip lands on the coached case", story.classList.contains("hidden") &&
 ok("case card arrives", !!$(".case-card"));
 ok("coach bubble shows step 1",
   !!$("#coach") && /how the paper got here/i.test($("#coach").textContent));
+ok("coach Next is a real button (filled, not a link)",
+  $("#coach .coach-next") && $("#coach .coach-next").tagName === "BUTTON");
+ok("no YOUR TURN tag on the explanatory steps", !$("#coach .turn-tag"));
 ok("instruction banner hidden while the coach teaches", $("#instr").classList.contains("hidden"));
 ok("coach docks in-flow at this width (no card overlay)",
   $("#coach").classList.contains("docked") && $("#coach").previousElementSibling === $("#instr"));
@@ -133,6 +143,7 @@ ok("stamps still asleep on step 2", $("#susBtn").disabled);
 click($("#coach .coach-next"));
 await sleep(300);
 ok("step 3 says tap one, stamp SUS", /stamp SUS/i.test($("#coach").textContent));
+ok("step 3 carries the YOUR TURN tag", !!$("#coach .turn-tag") && /YOUR TURN/.test($("#coach .turn-tag").textContent));
 ok("instruction banner still hidden at the live step", $("#instr").classList.contains("hidden"));
 const coldBot = G().auditSubs[0];
 ok("the two tell rows pulse", $$(".tel-row.coach-pulse").length === coldBot.tel.tells.length && coldBot.tel.tells.length === 2);
@@ -150,6 +161,7 @@ ok("cold machine receipt not odd", !LOGIC().oddField("receipt", coldBot.tel.rece
 window.eval("clearLater()");
 click($(".tel-row[data-tel='latency']"));
 await sleep(200);
+ok("once a line is circled the SUS paddle pulses", $("#susBtn").classList.contains("btn-pulse"));
 $("#susBtn").click();
 await sleep(800);
 ok("arm+SUS catches the tour machine", coldBot.pick === "SUS" && coldBot.correct === true);
@@ -165,6 +177,8 @@ ok("guided filing is a real person", guided.bot === false);
 ok("guided filing's one odd field is explained (empty tells)",
   guided.tel.tells.length === 0 && guided.tel.hops === "0" && guided.note === LOGIC().EXCUSE_NOTES.hops);
 ok("guided coach step points at the note", !!$("#coach") && /Stamp HUMAN/i.test($("#coach").textContent));
+ok("step 4 carries the YOUR TURN tag", !!$("#coach .turn-tag"));
+ok("step 4 pulses the HUMAN paddle", $("#humanBtn").classList.contains("btn-pulse"));
 ok("instruction banner hidden on the guided filing", $("#instr").classList.contains("hidden"));
 ok("slip reaches for the relays row", !!$(".slip-link"));
 
@@ -206,13 +220,67 @@ ok("usually baseline absent on night two", (function () {
 })());
 window.eval("G.day = 0; renderCase();");
 
+// — desk text size: one custom property, zoom-driven, fit-clamped
+// (jsdom has no layout — every rect is 0×0, so every size "fits" and the
+//  default lands on L; the real fit maths is proven in the browser pass)
+const propScale = () => d.documentElement.style.getPropertyValue("--ui-scale");
+ok("default scale = largest of S/M/L that fits", propScale() === "1.3");
+ok("Aa button lives in the HUD with its tip", !!$("#sizeBtn") && /text size/.test($("#sizeBtn").dataset.tip));
+click($("#sizeBtn"));
+await sleep(50);
+ok("Aa cycles up to XL (opt-in by tap)", propScale() === "1.5" && /Size: extra large/.test($("#auditHint").textContent));
+const key = (k, target) => (target || d).dispatchEvent(new window.KeyboardEvent("keydown", { key: k, bubbles: true }));
+key("-");
+await sleep(50);
+ok("'−' steps back down", propScale() === "1.3");
+key("=");
+await sleep(50);
+ok("'=' grows again", propScale() === "1.5");
+ok("size persisted into the prefs object",
+  JSON.parse(window.eval(`localStorage.getItem('${"night-shift-prefs-v1"}')`) || "{}").size === 3);
+const inp = d.createElement("input"); d.body.appendChild(inp);
+key("+", inp); key("+", d.activeElement === inp ? inp : inp);
+await sleep(50);
+ok("size keys ignore text input focus", propScale() === "1.5");
+$("#handbook").classList.remove("hidden");
+key("+");
+await sleep(50);
+ok("size keys ignore the open handbook", propScale() === "1.5");
+$("#handbook").classList.add("hidden");
+inp.remove();
+key("-"); key("-"); key("-");
+await sleep(50);
+ok("keys clamp at S", propScale() === "1");
+window.eval("applyScale()");
+{
+  const w0 = Object.getOwnPropertyDescriptor(window, "innerWidth");
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 500 });
+  window.eval("scaleIdx = 2; applyScale()");
+  ok("under 700px the scale is forced to 1", propScale() === "1");
+  if (w0) Object.defineProperty(window, "innerWidth", w0);
+  window.eval("scaleIdx = 0; applyScale()");
+}
+
+// — licensed-music retry: a blocked first play() stays retryable
+//   (one refused play() used to silence the whole week)
+{
+  let plays = 0;
+  window.HTMLMediaElement.prototype.play = function() { plays++; return Promise.reject(new Error("autoplay")); };
+  window.eval("playLicensed('title', { loop: true })");
+  ok("blocked play attempted once", plays === 1);
+  d.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  await sleep(50);
+  ok("the next gesture retries the paused element", plays === 2);
+  window.HTMLMediaElement.prototype.play = function() { return Promise.resolve(); };
+}
+
 // — second boot: Skip tour and the done flag both land on night one,
 //   and the week's docket is identical either way (named rng streams)
-async function boot() {
+async function boot(seeds) {
   const d2 = await JSDOM.fromFile(new URL("index.html", import.meta.url).pathname, {
     runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
     beforeParse(w2) {
-      const store = {};
+      const store = { ...(seeds || {}) };
       Object.defineProperty(w2, "localStorage", { configurable: true, value: {
         getItem: (k) => (k in store ? store[k] : null),
         setItem: (k, v) => { store[k] = String(v); },

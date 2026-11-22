@@ -1053,7 +1053,6 @@ function startStory() {
 }
 function renderStory() {
   const p = STORY[storyIdx], el = $("storyPanel");
-  $("storyNext").classList.add("hidden");
   if (p.kind === "art") {
     el.innerHTML = `<img class="sp-art" src="${p.src}" alt="" loading="eager"
       onerror="this.classList.add('missing')">`;
@@ -1075,11 +1074,14 @@ function renderStory() {
   } else { // desk
     el.innerHTML = `<img class="sp-art" src="art/room-night.webp" alt="" loading="eager"
       onerror="this.classList.add('missing')"><div class="sp-deskcard"></div>`;
-    $("storyNext").classList.remove("hidden");
   }
-  $("storyCap").textContent = p.cap;
+  // the advance affordance lives on the caption plate — an obvious amber
+  // button, since taps and keys both work but nobody hunts for them
+  $("storyCap").innerHTML =
+    `<span class="cap-txt">${p.cap}</span><button type="button" class="story-next">${storyIdx === STORY.length - 1 ? "Start the shift →" : "Next →"}</button>`;
   $("storyDots").innerHTML = STORY.map((_, i) =>
     `<span class="story-dot${i === storyIdx ? " on" : ""}"></span>`).join("");
+  $("storyHint").classList.toggle("hidden", storyIdx !== 0);
 }
 function nextStory() {
   if (!storyOn) return;
@@ -1111,7 +1113,7 @@ $("story").addEventListener("click", (e) => {
   nextStory();
 });
 $("storySkip").addEventListener("click", (e) => { e.stopPropagation(); endStory(); });
-$("storyNext").addEventListener("click", (e) => { e.stopPropagation(); endStory(); });
+// the caption button bubbles to #story — one advance path for tap and key
 function endBrief() {
   if (!briefOpen) return;
   briefOpen = false;
@@ -1953,7 +1955,7 @@ const COLD_BOT_CARD = {
 // explains — run up the same rules so the excuse lesson is practised, not read
 const COLD_GUIDED_CARD = {
   id: "cold-guided", name: "The night drop", glyph: "📮",
-  argument: "Runner brought it straight from the lobby — no wait on the wire.",
+  argument: "Sent it straight through. Didn't want it sitting in anyone's tray.",
   tags: { place: "library", time: "night", people: "alone", setting: "indoor" },
 };
 function startColdOpen() {
@@ -2073,7 +2075,7 @@ const COACH_STEPS = {
   3: { anchor: ".case-stub", live: true, pulseTells: true,
        text: (sub) => `Travel time ${say("latency", sub.tel, sub.filedMin)}, sent from ${say("origin", sub.tel, sub.filedMin)} — which is locked. No person did that. Tap either line, then stamp SUS.` },
   4: { anchor: ".note-slip", live: true, link: "hops",
-       text: "No stops on the way is strange — but the note says it was hand-delivered. That's a person. Stamp HUMAN." },
+       text: "No stops on the way is strange — but the note says it came on a direct line. That's a person. Stamp HUMAN." },
 };
 let tourStep = 0;
 let coachEl = null;
@@ -2107,7 +2109,7 @@ function coachShow(step) {
   const sub = G.auditSubs[G.auditIdx];
   const coachText = typeof COACH_STEPS[step].text === "function"
     ? COACH_STEPS[step].text(sub) : COACH_STEPS[step].text;
-  coachEl.innerHTML = `<p>${coachText}</p>
+  coachEl.innerHTML = `${COACH_STEPS[step].live ? '<i class="turn-tag">YOUR TURN</i>' : ""}<p>${coachText}</p>
     <div class="coach-btns">
       ${!COACH_STEPS[step].live ? '<button type="button" class="coach-next">Next →</button>' : ""}
       <button type="button" class="coach-skip">Skip tour</button>
@@ -2123,6 +2125,10 @@ function coachShow(step) {
   coachEl.addEventListener("click", () => { if (G.tourLock) coachNext(); });
   // stamps stay asleep until the step that teaches them
   $("susBtn").disabled = $("humanBtn").disabled = G.tourLock;
+  // the paddle the step is waiting on pulses (the stub rows pulse via
+  // coach-pulse; the stamp itself is the tell for steps 3/4)
+  $("susBtn").classList.toggle("btn-pulse", step === 3 && !!sub && !!sub.armed && !sub.pick);
+  $("humanBtn").classList.toggle("btn-pulse", step === 4 && !!sub && !sub.pick);
   // the banner would contradict the coach — while it teaches, it owns the slot
   $("instr").classList.add("hidden");
   positionCoach(step);
@@ -2160,6 +2166,8 @@ function coachNext() {
 function coachHideDom() {
   coachEl && coachEl.remove();
   coachEl = null;
+  $("susBtn")?.classList.remove("btn-pulse");
+  $("humanBtn")?.classList.remove("btn-pulse");
   document.querySelectorAll(".coach-hi, .coach-pulse").forEach((el) =>
     el.classList.remove("coach-hi", "coach-pulse"));
   // hand the instruction slot back — on real nights it's already
@@ -2488,6 +2496,11 @@ function renderCase() {
     ["mouseleave", "blur"].forEach((ev) => b.addEventListener(ev, () => row.classList.remove("peek")));
   });
   $("susBtn").disabled = $("humanBtn").disabled = checked || G.tourLock;
+  if (scaleDirty && scaleCanMeasure()) settleScale();
+  // the tour points at the next action: once a line is circled on step 3
+  // the SUS paddle pulses; step 4's whole lesson is the HUMAN paddle
+  $("susBtn").classList.toggle("btn-pulse", tourStep === 3 && !!sub.armed && !sub.pick);
+  $("humanBtn").classList.toggle("btn-pulse", tourStep === 4 && !sub.pick);
   if (!checked) {
     if (!calmMotion()) {
       // most filings land with a rustle; some — the machine's always,
@@ -3385,6 +3398,15 @@ document.addEventListener("keydown", (e) => {
   if (storyKey(e)) return;
   if (briefOpen) { endBrief(); return; }
 
+  // desk size: +/= grows, − shrinks — never while typing or reading the handbook
+  if ((e.key === "+" || e.key === "=" || e.key === "-") && !e.repeat
+      && !(e.target && e.target.closest && e.target.closest("input, textarea, [contenteditable]"))
+      && $("handbook").classList.contains("hidden")) {
+    if (scaleDirty) settleScale();
+    cycleScale(e.key === "-" ? -1 : 1);
+    return;
+  }
+
   // SHIFT is the day verb: it walks the loupe across the fact columns.
   // Key-repeat does nothing — a held Shift doesn't spin the loupe.
   if (e.key === "Shift") {
@@ -3729,13 +3751,114 @@ function loadSave() {
   } catch { return null; }
 }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch { /* nothing to clear */ } }
+/* ---------- UI scale: the audit desk grows to fill the window ----------
+ * One custom property drives zoom on the desk column (card, stub, note,
+ * buttons, hint, coach, summary) and the side file. A size that would
+ * push the stamp buttons or hint line off-screen is never offered; XL is
+ * opt-in only. Under 700px the phone layout already fits — scale is 1. */
+const UI_SCALES = [1, 1.15, 1.3, 1.5];
+const SCALE_NAMES = ["small", "medium", "large", "extra large"];
+let scaleIdx = 0, scaleUserSet = false, scaleDirty = true;
+let scaleFit = [true, true, true, true], scaleCompact = [false, false, false, false];
+let hintFlashTimer = null;
+function scaleCanMeasure() {
+  return innerWidth >= 700 && G.phase === "audit" &&
+    !!$("caseCard").querySelector(".case-card");
+}
+/* a size is offered at normal layout first; if it can't fit, the desk
+   compacts itself (pile row, photo, margins) before the size is refused */
+function measureScaleFit() {
+  if (!scaleCanMeasure()) {
+    scaleFit = [true, true, true, true];
+    scaleCompact = [false, false, false, false];
+    return;
+  }
+  const doc = document.documentElement.style;
+  const audit = $("auditPhase");
+  // an empty hint still takes lines when the next tip lands — measure it
+  // with a probe line so an "offered" size never pushes it off-screen
+  const hintEl = $("auditHint");
+  const probed = !hintEl.textContent;
+  if (probed) hintEl.textContent = "SUS · TRAVEL TIME — the usual trip is 0.1 sec or more";
+  const fits = (z) => {
+    doc.setProperty("--ui-scale", z);
+    const card = $("caseCard").querySelector(".case-card").getBoundingClientRect();
+    const btns = $("caseBtns").getBoundingClientRect();
+    const hint = hintEl.getBoundingClientRect();
+    const bottom = Math.max(btns.bottom, hint.bottom);
+    return card.left >= 0 && card.right <= innerWidth - 4 &&
+      bottom <= innerHeight - 4;
+  };
+  UI_SCALES.forEach((z, i) => {
+    audit.classList.remove("compact");
+    if (fits(z)) { scaleFit[i] = true; scaleCompact[i] = false; return; }
+    audit.classList.add("compact");
+    if (fits(z)) { scaleFit[i] = true; scaleCompact[i] = true; return; }
+    scaleFit[i] = false; scaleCompact[i] = false;
+  });
+  if (probed) hintEl.textContent = "";
+  audit.classList.remove("compact");
+  scaleFit[0] = true;
+  doc.setProperty("--ui-scale", UI_SCALES[scaleIdx]);
+}
+function applyScale() {
+  if (innerWidth < 700) scaleIdx = 0;
+  document.documentElement.style.setProperty("--ui-scale", UI_SCALES[scaleIdx]);
+  $("auditPhase")?.classList.toggle("compact",
+    innerWidth >= 700 && !!scaleCompact[scaleIdx]);
+  const b = $("sizeBtn");
+  if (b) b.dataset.tip = `text size — ${SCALE_NAMES[scaleIdx]}`;
+}
+/* recompute which sizes fit, then settle on the right one:
+ * a user-chosen size is kept while it fits (XL included); the default is
+ * the largest of S/M/L that fits */
+function settleScale() {
+  scaleDirty = false;
+  measureScaleFit();
+  if (!scaleFit[scaleIdx] || (!scaleUserSet && scaleIdx > 2))
+    scaleIdx = scaleUserSet ? scaleFit.lastIndexOf(true) : 0;
+  if (!scaleUserSet)
+    for (let i = 2; i >= 0; i--) if (scaleFit[i]) { scaleIdx = i; break; }
+  applyScale();
+}
+function cycleScale(dir) {
+  const fitting = UI_SCALES.map((_, i) => i).filter((i) => scaleFit[i]);
+  if (fitting.length < 2) return;
+  const at = fitting.indexOf(scaleIdx);
+  setScale(fitting[(at + dir + fitting.length) % fitting.length]);
+}
+function setScale(i) {
+  scaleIdx = i; scaleUserSet = true;
+  applyScale(); savePrefs();
+  hintFlash(`Size: ${SCALE_NAMES[i]}`);
+}
+function hintFlash(text) {
+  const h = $("auditHint"); if (!h) return;
+  clearTimeout(hintFlashTimer);
+  h.textContent = text;
+  hintFlashTimer = setTimeout(() => {
+    const sub = G.auditSubs && G.auditSubs[G.auditIdx];
+    h.textContent = sub && sub.armed
+      ? `${TEL_LABEL[sub.armed]} ${say(sub.armed, sub.tel, sub.filedMin)} — ${TEL_TIPS[sub.armed]}` : "";
+  }, 1600);
+}
+$("sizeBtn").addEventListener("click", () => { if (scaleDirty) settleScale(); cycleScale(1); });
+addEventListener("resize", () => {
+  scaleDirty = true;
+  if (scaleCanMeasure()) settleScale();
+  else applyScale();
+});
+
 function savePrefs() {
-  try { localStorage.setItem(PREF_KEY, JSON.stringify({ muted: audioMuted })); } catch { /* ears only */ }
+  try { localStorage.setItem(PREF_KEY, JSON.stringify({ muted: audioMuted, size: scaleUserSet ? scaleIdx : null })); } catch { /* ears only */ }
 }
 function loadPrefs() {
   try {
     const p = JSON.parse(localStorage.getItem(PREF_KEY) || "null");
     if (p && p.muted) audioMuted = true;
+    if (p && typeof p.size === "number" && p.size >= 0 && p.size < UI_SCALES.length) {
+      scaleIdx = p.size; scaleUserSet = true;
+    }
   } catch { /* fresh ears */ }
   // the score module doesn't own policy — report the restored mute state
   // before its bus exists, so the first play() opens it silent
@@ -3805,7 +3928,9 @@ function setLicensedRate(r) {
 }
 function playLicensed(name, { loop = false, vol = 0.4 } = {}) {
   if (audioMuted || licensed[name] === false) return null;
-  if (licensed[name] && !licensed[name].ended) return licensed[name];
+  // a start the browser blocked (no gesture yet) leaves the element paused —
+  // that must stay retryable, or one refused play() silences the whole week
+  if (licensed[name] && !licensed[name].ended && !licensed[name].paused) return licensed[name];
   const a = licensed[name] || (licensed[name] = new Audio(`audio/${name}.mp3`));
   a.loop = loop; a.volume = 0; a.muted = audioMuted; a.__fadeOut = false;
   a.preservesPitch = a.webkitPreservesPitch = a.mozPreservesPitch = false;
@@ -4071,9 +4196,14 @@ $("againBtn").addEventListener("click", () => location.reload());
 
 // licensed title music rides the first user gesture (autoplay policy);
 // absent file → playLicensed fails silently and the synth carries on
-["pointerdown", "keydown"].forEach((ev) =>
+// pointerdown is not a valid gesture on touch or in Safari — click, pointerup
+// and touchend are, so listen to all of them; and retry a blocked start in
+// any phase (never one that was faded out on purpose)
+["pointerdown", "pointerup", "touchend", "click", "keydown"].forEach((ev) =>
   document.addEventListener(ev, () => {
-    if (document.body.dataset.phase === "title") playLicensed("title", { loop: true });
+    const t = licensed.title;
+    if (document.body.dataset.phase === "title" || (t && t.paused && !t.__fadeOut))
+      playLicensed("title", { loop: true });
   }, { once: false, capture: true }));
 
 // ---------- boot: the unfinished shift waits on the title ----------

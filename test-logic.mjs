@@ -197,7 +197,7 @@ assert(LOGIC.say("origin", { origin: "STREET BOX 6" }) === "street mailbox 6", "
 assert(LOGIC.say("hops", { hops: "0" }) === "none", "say hops 0");
 assert(LOGIC.say("hops", { hops: "3" }) === "3", "say hops 3");
 assert(LOGIC.say("receipt", { receipt: "rcvd +8h57m" }) === "2:57 am", "say receipt time");
-assert(LOGIC.say("receipt", { receipt: "rcvd +0h04m · queued" }) === "6:04 pm · held in a queue", "say receipt queued");
+assert(LOGIC.say("receipt", { receipt: "rcvd +0h04m · queued" }) === "6:04 pm · delayed", "say receipt queued");
 assert(LOGIC.say("receipt", { receipt: "rcvd +1h02m · resent ×2" }) === "7:02 pm · sent twice", "say receipt resent");
 assert(LOGIC.say("receipt", { receipt: "rcvd +0h01m · no delay" }) === "6:01 pm · no delay", "say receipt other suffix passes through");
 

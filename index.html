@@ -165,9 +165,9 @@
       <section><h4>HOW IT GOT HERE — THE ONLY TESTIMONY</h4>
         <table class="hb-table">
           <tr><th>line</th><th>a person</th><th>strange</th><th>the excuse on the paper</th></tr>
-          <tr><td>TRAVEL TIME</td><td>0.1 sec or more</td><td>under 0.1 sec, or one already in its file</td><td>sent from the lobby downstairs</td></tr>
-          <tr><td>SENT FROM</td><td>matches the story — an indoor line indoors, a street mailbox out</td><td>inside this office, or the wrong kind for the story</td><td>walked in and handed it over</td></tr>
-          <tr><td>STOPS</td><td>2–5</td><td>none</td><td>hand-delivered</td></tr>
+          <tr><td>TRAVEL TIME</td><td>0.1 sec or more</td><td>under 0.1 sec, or one already in its file</td><td>sent by express</td></tr>
+          <tr><td>SENT FROM</td><td>matches the story — an indoor line indoors, a street mailbox out</td><td>inside this office, or the wrong kind for the story</td><td>came in and sent it from the front desk</td></tr>
+          <tr><td>STOPS</td><td>2–5</td><td>none</td><td>sent on a direct line</td></tr>
           <tr><td>ARRIVED</td><td>after it was sent</td><td>before it was sent</td><td>desk clock runs slow</td></tr>
         </table>
         <p>indoor line = indoors · street mailbox = outdoors.</p>
@@ -175,7 +175,7 @@
         <p>It never sends the same travel time twice — its file (<kbd>F</kbd>) keeps them.</p>
       </section>
       <section><h4>THE DESK</h4>
-        <p><kbd>?</kbd> this card · <kbd>M</kbd> mute · tap a stamped case to continue.</p>
+        <p><kbd>?</kbd> this card · <kbd>M</kbd> mute · <kbd>Aa</kbd> or <kbd>+</kbd>/<kbd>−</kbd> desk text size · tap a stamped case to continue.</p>
         <p>Overtime deals generated rules. The Machine's Shift inverts the desk — you forge how a paper got here.</p>
         <p>The wire remembers everything. It always does.</p>
       </section>
@@ -297,6 +297,7 @@
       <span id="hudScore"></span>
       <button id="mfileBtn" class="hidden" type="button" data-tip="every trip the machine has made — F toggles">its file · 0</button>
       <button id="wireBtn" type="button" data-tip="the wire — tonight's events, in order">wire</button>
+      <button id="sizeBtn" type="button" data-tip="text size">Aa</button>
     </header>
 
     <!-- the desk remembers: tonight's events, in order, never erased.
@@ -487,8 +488,8 @@
     <div id="story" class="hidden">
       <div id="storyPanel"></div>
       <p class="story-cap" id="storyCap"></p>
-      <button id="storyNext" class="story-go hidden" type="button">Start the shift →</button>
       <div id="storyDots"></div>
+      <p class="story-hint hidden" id="storyHint">tap anywhere or press Space</p>
       <button id="storySkip" type="button">Skip</button>
     </div>
 

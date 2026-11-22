@@ -747,9 +747,9 @@ const NEUTRAL_NOTES = [
   "one corner is torn", "smells faintly of smoke",
 ];
 const EXCUSE_NOTES = {
-  latency: "sent from the lobby downstairs — a short trip",
-  origin: "walked in and handed it over at the front desk",
-  hops: "hand-delivered — no stops",
+  latency: "sent by express — a fast trip",
+  origin: "came in and sent it from the front desk",
+  hops: "sent on a direct line — no stops",
   receipt: "desk clock runs slow — logged early",
 };
 const NIGHT_MEMO = [
@@ -791,7 +791,7 @@ function clock(mins) {
   const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
   return `${h12}:${String(m).padStart(2, "0")} ${h24 < 12 ? "am" : "pm"}`;
 }
-const SAY_SUFFIX = { "resent ×2": "sent twice", "queued": "held in a queue" };
+const SAY_SUFFIX = { "resent ×2": "sent twice", "queued": "delayed" };
 function say(k, tel, filedMin) {
   const v = tel[k];
   if (k === "latency") {
